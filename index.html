@@ -1,0 +1,1893 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>사내 물품 재고 관리 시스템</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          colors: { brand: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca' } }
+        }
+      }
+    }
+  </script>
+  <style>
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+    .badge-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+    .loader { border: 3px solid #f3f3f3; border-top: 3px solid #4f46e5; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-sans antialiased min-h-screen flex flex-col transition-colors duration-200">
+
+  <div id="global-loader" class="fixed inset-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm z-[100] flex flex-col items-center justify-center transition-opacity duration-300 hidden">
+    <div class="loader mb-4"></div>
+    <p id="loader-text" class="text-sm font-medium text-slate-600 dark:text-slate-300">데이터 처리 중...</p>
+  </div>
+
+  <div id="gas-url-modal" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-lg p-8 border border-slate-100 dark:border-slate-700">
+      <div class="text-center mb-6">
+        <div class="w-14 h-14 rounded-2xl bg-brand-600 flex items-center justify-center text-white shadow-lg mx-auto mb-3">
+          <i class="ph-bold ph-link text-2xl"></i>
+        </div>
+        <h2 class="text-xl font-bold text-slate-900 dark:text-white">구글 앱스 스크립트(GAS) 연동 설정</h2>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">GitHub Pages 배포를 위해 배포된 웹 앱 URL을 입력해주세요.</p>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">웹 앱 URL (Web App URL)</label>
+          <input type="url" id="input-gas-url" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-4 py-3 text-sm border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none bg-slate-50/50 dark:bg-slate-900 dark:text-white font-mono text-xs">
+        </div>
+        <button onclick="saveGasUrl()" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-md transition text-sm">연동 저장 및 시작하기</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="login-section" class="fixed inset-0 z-40 bg-slate-900 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-md p-8 sm:p-10 border border-slate-100 dark:border-slate-700 animate-in fade-in zoom-in-95 duration-200">
+      <div class="text-center mb-8">
+        <div class="w-16 h-16 rounded-2xl bg-brand-600 flex items-center justify-center text-white shadow-lg mx-auto mb-4">
+          <i class="ph-bold ph-package text-3xl"></i>
+        </div>
+        <h2 class="text-2xl font-bold text-slate-900 dark:text-white">사내 재고관리 시스템</h2>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">계정 정보를 입력하여 로그인해주세요.</p>
+      </div>
+
+      <form onsubmit="handleLogin(event)" class="space-y-5">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">아이디 (Account)</label>
+          <div class="relative">
+            <i class="ph-bold ph-user absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg"></i>
+            <input type="text" id="login-account" required placeholder="계정 아이디 입력" class="w-full pl-11 pr-4 py-3 text-sm border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none bg-slate-50/50 dark:bg-slate-900 dark:text-white transition">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">비밀번호 (Password)</label>
+          <div class="relative">
+            <i class="ph-bold ph-lock-key absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg"></i>
+            <input type="password" id="login-password" required placeholder="비밀번호 입력" class="w-full pl-11 pr-4 py-3 text-sm border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none bg-slate-50/50 dark:bg-slate-900 dark:text-white transition">
+          </div>
+        </div>
+
+        <button type="submit" id="btn-login" class="w-full py-3.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-md shadow-brand-500/20 transition flex items-center justify-center space-x-2 text-base">
+          <span>로그인</span>
+          <i class="ph-bold ph-arrow-right"></i>
+        </button>
+        <div class="text-center pt-2">
+          <button type="button" onclick="openGasModal()" class="text-xs text-slate-400 hover:text-brand-600 transition underline">GAS 백엔드 URL 재설정</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="main-app-section" class="hidden flex-1 flex flex-col min-h-screen">
+    <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-30 shadow-sm">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-20">
+          <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-xl bg-brand-600 flex items-center justify-center text-white shadow-md">
+              <i class="ph-bold ph-package text-lg"></i>
+            </div>
+            <div>
+              <div class="flex items-center space-x-1.5">
+                <h1 class="text-xs font-extrabold text-slate-900 dark:text-white leading-tight">스마트 재고관리</h1>
+                <button onclick="openModal('help-modal')" class="w-3.5 h-3.5 rounded-full bg-slate-100 dark:bg-slate-700 hover:bg-brand-50 hover:text-brand-600 text-slate-500 dark:text-slate-300 text-[9px] font-bold flex items-center justify-center transition shadow-sm border border-slate-200 dark:border-slate-600" title="프로그램 사용법 및 안내">?</button>
+                <span class="text-[8px] font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 px-1 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">Live</span>
+              </div>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">환영합니다, <span id="current-user-name" class="font-bold text-brand-600 dark:text-brand-400">사용자</span>님 (<span id="current-user-level" class="text-slate-600 dark:text-slate-300 font-semibold">등급: -</span>)</p>
+            </div>
+          </div>
+
+          <nav class="hidden md:flex items-center space-x-1">
+            <button onclick="switchTab('inventory')" id="tab-btn-inventory" class="tab-btn active px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center space-x-1 text-brand-600 bg-brand-50 dark:bg-brand-900/40 dark:text-brand-400 shadow-sm border border-brand-200 dark:border-brand-800">
+              <i class="ph-bold ph-squares-four text-sm"></i><span>전체 재고</span>
+            </button>
+            <button onclick="switchTab('transactions')" id="tab-btn-transactions" class="tab-btn px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center space-x-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700">
+              <i class="ph-bold ph-arrows-left-right text-sm"></i><span>입/출고 관리</span>
+            </button>
+            <button onclick="switchTab('orders')" id="tab-btn-orders" class="tab-btn px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center space-x-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700">
+              <i class="ph-bold ph-clipboard-text text-sm"></i><span>오더/결제 관리</span>
+            </button>
+            <button onclick="switchTab('analytics')" id="tab-btn-analytics" class="tab-btn px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center space-x-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700">
+              <i class="ph-bold ph-chart-pie-slice text-sm"></i><span>통계 분석</span>
+            </button>
+            <button onclick="switchTab('users')" id="tab-btn-users" class="tab-btn hidden px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center space-x-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700">
+              <i class="ph-bold ph-users-three text-sm"></i><span>사용자 관리</span>
+            </button>
+          </nav>
+
+          <div class="flex items-center space-x-1.5">
+            <button onclick="openItemModal('add')" class="bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center space-x-1 shadow-sm transition whitespace-nowrap">
+              <i class="ph-bold ph-plus text-xs"></i>
+              <span>물품 등록</span>
+            </button>
+            <button onclick="toggleDarkMode()" class="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-200 text-xs font-bold p-1.5 rounded-lg transition flex items-center justify-center" title="다크모드 전환">
+              <i id="dark-mode-icon" class="ph-bold ph-moon text-sm"></i>
+            </button>
+            <button onclick="handleLogout()" class="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-200 text-xs font-bold px-2 py-1.5 rounded-lg flex items-center space-x-1 transition" title="로그아웃">
+              <i class="ph-bold ph-sign-out text-sm"></i>
+              <span class="hidden md:inline">로그아웃</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+      <section id="tab-inventory" class="tab-content space-y-6">
+        <div id="order-dashboard-alert-container"></div>
+        <div id="low-stock-alert-container"></div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-between">
+            <div><p class="text-xs font-medium text-slate-500 dark:text-slate-400">전체 품목</p><h3 id="stat-total-items" class="text-xl font-bold text-slate-900 dark:text-white mt-1">0개</h3></div>
+            <div class="w-10 h-10 rounded-lg bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center"><i class="ph-bold ph-package text-xl"></i></div>
+          </div>
+          <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-between">
+            <div><p class="text-xs font-medium text-slate-500 dark:text-slate-400">위험 재고</p><h3 id="stat-warning-items" class="text-xl font-bold text-rose-600 mt-1">0개</h3></div>
+            <div class="w-10 h-10 rounded-lg bg-rose-50 dark:bg-rose-900/30 text-rose-600 flex items-center justify-center"><i class="ph-bold ph-warning-octagon text-xl"></i></div>
+          </div>
+          <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-between">
+            <div><p class="text-xs font-medium text-slate-500 dark:text-slate-400">총 자산 가치</p><h3 id="stat-total-value" class="text-xl font-bold text-brand-600 dark:text-brand-400 mt-1">$0</h3></div>
+            <div class="w-10 h-10 rounded-lg bg-brand-50 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 flex items-center justify-center"><i class="ph-bold ph-currency-dollar text-xl"></i></div>
+          </div>
+        </div>
+
+        <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col md:flex-row gap-3">
+          <div class="flex-1 flex gap-2">
+            <div class="relative flex-1">
+              <i class="ph-bold ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+              <input type="text" id="inventory-search" placeholder="검색어 (물품명, 고유ID, 거래처)..." class="w-full pl-9 pr-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none bg-white dark:bg-slate-900 dark:text-white">
+            </div>
+            <select id="inventory-category-filter" class="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500">
+              <option value="ALL">전체 카테고리</option>
+            </select>
+          </div>
+          <div class="flex items-center space-x-2">
+            <label class="text-xs text-slate-500 dark:text-slate-400 font-medium">정렬:</label>
+            <select id="inventory-sort-by" class="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500">
+              <option value="priority">위험재고 우선순위</option>
+              <option value="name_asc">물품명 (가나다)</option>
+              <option value="stock_asc">재고 부족순</option>
+              <option value="stock_desc">재고 여유순</option>
+            </select>
+            <button onclick="fetchDataFromServer()" class="px-3 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg text-sm font-medium transition" title="데이터 새로고침">
+              <i class="ph-bold ph-arrows-clockwise"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  <th class="py-3 px-4">상태</th>
+                  <th class="py-3 px-4">물품 고유 ID</th>
+                  <th class="py-3 px-4">품목 코드</th>
+                  <th class="py-3 px-4">물품명 (규격)</th>
+                  <th class="py-3 px-4">카테고리</th>
+                  <th class="py-3 px-4">거래처</th>
+                  <th class="py-3 px-4 text-right">현 재고</th>
+                  <th class="py-3 px-4 text-right">안전 재고</th>
+                  <th class="py-3 px-4 text-right">단가 ($)</th>
+                  <th class="py-3 px-4 text-right">총액 ($)</th>
+                  <th class="py-3 px-4 text-center">관리</th>
+                </tr>
+              </thead>
+              <tbody id="inventory-table-body" class="divide-y divide-slate-100 dark:divide-slate-700 text-sm"></tbody>
+            </table>
+          </div>
+          <div id="inventory-empty-state" class="hidden p-12 text-center">
+            <i class="ph-duotone ph-package text-4xl text-slate-300 dark:text-slate-600 mx-auto mb-2"></i>
+            <p class="text-slate-500 dark:text-slate-400 font-medium">등록되거나 검색된 물품이 없습니다.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-transactions" class="tab-content hidden space-y-6">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900 dark:text-white">물품 입출고 내역</h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400">기록된 내역은 원장에 자동 저장되며, 실수 시 [되돌리기]를 통해 재고를 원복할 수 있습니다.</p>
+          </div>
+          <div class="flex space-x-2">
+            <button onclick="openMultiTxModal('IN')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium px-4 py-2 rounded-lg flex items-center space-x-1.5"><i class="ph-bold ph-arrow-down-left"></i><span>다중 입고</span></button>
+            <button onclick="openMultiTxModal('OUT')" class="bg-rose-600 hover:bg-rose-700 text-white text-sm font-medium px-4 py-2 rounded-lg flex items-center space-x-1.5"><i class="ph-bold ph-arrow-up-right"></i><span>다중 출고</span></button>
+          </div>
+        </div>
+
+        <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
+          <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+            <div class="flex items-center space-x-1 bg-slate-100 dark:bg-slate-700 p-1 rounded-lg">
+              <button onclick="setDateRange('all')" id="btn-date-all" class="px-2.5 py-1 text-xs font-medium rounded bg-white dark:bg-slate-800 text-slate-800 dark:text-white shadow-sm transition">전체</button>
+              <button onclick="setDateRange(7)" id="btn-date-7" class="px-2.5 py-1 text-xs font-medium rounded text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition">7일</button>
+              <button onclick="setDateRange(30)" id="btn-date-30" class="px-2.5 py-1 text-xs font-medium rounded text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition">30일</button>
+            </div>
+
+            <div class="flex items-center space-x-1">
+              <span class="text-xs font-medium text-slate-500 dark:text-slate-400">시작일:</span>
+              <input type="date" id="tx-filter-start" onchange="onDateInputChange()" class="px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500">
+            </div>
+            <span class="text-slate-400">~</span>
+            <div class="flex items-center space-x-1">
+              <span class="text-xs font-medium text-slate-500 dark:text-slate-400">종료일:</span>
+              <input type="date" id="tx-filter-end" onchange="onDateInputChange()" class="px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500">
+            </div>
+            <select id="tx-filter-type" onchange="renderTransactions()" class="px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500">
+              <option value="ALL">전체 유형 (입고/출고)</option>
+              <option value="IN">입고만 보기</option>
+              <option value="OUT">출고만 보기</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2 w-full md:w-auto justify-end">
+            <button onclick="resetTxFilter()" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 transition">필터 초기화</button>
+            <button onclick="exportTransactions()" class="px-3 py-1.5 bg-brand-50 dark:bg-brand-900/30 hover:bg-brand-100 dark:hover:bg-brand-900/50 rounded-lg text-xs font-medium text-brand-600 dark:text-brand-400 transition flex items-center space-x-1">
+              <i class="ph-bold ph-download-simple"></i><span>내역 추출 (CSV)</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <th class="py-3 px-4">일시</th>
+                <th class="py-3 px-4">구분</th>
+                <th class="py-3 px-4">물품명</th>
+                <th class="py-3 px-4 text-right">수량</th>
+                <th class="py-3 px-4 text-right">단가 ($)</th>
+                <th class="py-3 px-4 text-right">총액 ($)</th>
+                <th class="py-3 px-4">담당자</th>
+                <th class="py-3 px-4">구매자</th>
+                <th class="py-3 px-4">비고</th>
+                <th class="py-3 px-4 text-center">관리</th>
+              </tr>
+            </thead>
+            <tbody id="transaction-table-body" class="divide-y divide-slate-100 dark:divide-slate-700 text-sm"></tbody>
+          </table>
+          <div id="tx-empty-state" class="hidden p-12 text-center">
+            <i class="ph-duotone ph-arrows-left-right text-4xl text-slate-300 dark:text-slate-600 mx-auto mb-2"></i>
+            <p class="text-slate-500 dark:text-slate-400 font-medium">조건에 일치하는 입출고 내역이 없습니다.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-orders" class="tab-content hidden space-y-6">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900 dark:text-white">추가 오더 및 결제 승인 시스템</h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400">C(직원) 오더 접수 ➔ B(매니저) 상신(1차 승인) ➔ A(이사) 결제 최종승인 ➔ S(대표) 전과정 제어</p>
+          </div>
+          <button onclick="openMultiOrderModal()" class="bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold px-4 py-2.5 rounded-xl flex items-center space-x-1.5 transition">
+            <i class="ph-bold ph-plus text-base"></i><span>다중 오더 접수</span>
+          </button>
+        </div>
+
+        <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
+          <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+            <div class="relative flex-1 min-w-[200px]">
+              <i class="ph-bold ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+              <input type="text" id="order-search" oninput="renderOrders()" placeholder="오더ID, 물품명, 신청자 검색..." class="w-full pl-9 pr-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm outline-none bg-white dark:bg-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500">
+            </div>
+            <select id="order-filter-stage" onchange="renderOrders()" class="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500">
+              <option value="ALL">전체 단계</option>
+              <option value="접수완료">접수완료</option>
+              <option value="상신완료">상신완료</option>
+              <option value="결제승인완료">결제승인완료</option>
+            </select>
+          </div>
+          <div class="flex items-center space-x-2 w-full md:w-auto justify-end">
+            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">기간:</span>
+            <input type="date" id="order-filter-start" onchange="renderOrders()" class="px-2.5 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-900 dark:text-white outline-none">
+            <span class="text-slate-400">~</span>
+            <input type="date" id="order-filter-end" onchange="renderOrders()" class="px-2.5 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-900 dark:text-white outline-none">
+            <button onclick="resetOrderFilter()" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 transition">초기화</button>
+          </div>
+        </div>
+
+        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  <th class="py-3 px-4">오더 ID</th>
+                  <th class="py-3 px-4">접수일시</th>
+                  <th class="py-3 px-4">물품명 (규격)</th>
+                  <th class="py-3 px-4 text-right">신청 수량</th>
+                  <th class="py-3 px-4">신청자</th>
+                  <th class="py-3 px-4">비고</th>
+                  <th class="py-3 px-4 text-center">현재 단계</th>
+                  <th class="py-3 px-4 text-center">승인 관리</th>
+                </tr>
+              </thead>
+              <tbody id="orders-table-body" class="divide-y divide-slate-100 dark:divide-slate-700 text-sm"></tbody>
+            </table>
+          </div>
+          <div id="orders-empty-state" class="hidden p-12 text-center">
+            <i class="ph-duotone ph-clipboard-text text-4xl text-slate-300 dark:text-slate-600 mx-auto mb-2"></i>
+            <p class="text-slate-500 dark:text-slate-400 font-medium">등록된 오더 내역이 없습니다.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-analytics" class="tab-content hidden space-y-6">
+        <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-between flex-wrap gap-3">
+          <div class="flex items-center space-x-2 flex-wrap gap-2">
+            <i class="ph-bold ph-calendar-blank text-brand-600 dark:text-brand-400 text-lg"></i>
+            <span class="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">통계 기간 설정:</span>
+            <div class="flex items-center space-x-1 bg-slate-100 dark:bg-slate-700 p-1 rounded-lg">
+              <button onclick="setStatsPeriod('all')" id="btn-stats-all" class="px-3 py-1 text-xs font-medium rounded bg-white dark:bg-slate-800 text-slate-800 dark:text-white shadow-sm transition">전체</button>
+              <button onclick="setStatsPeriod(7)" id="btn-stats-7" class="px-3 py-1 text-xs font-medium rounded text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition">일주일</button>
+              <button onclick="setStatsPeriod(30)" id="btn-stats-30" class="px-3 py-1 text-xs font-medium rounded text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition">한달</button>
+              <button onclick="setStatsPeriod(365)" id="btn-stats-365" class="px-3 py-1 text-xs font-medium rounded text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition">1년</button>
+            </div>
+            
+            <div class="flex items-center space-x-1 ml-2">
+              <span class="text-xs font-medium text-slate-500 dark:text-slate-400">시작:</span>
+              <input type="date" id="stats-filter-start" onchange="onStatsDateChange()" class="px-2.5 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500">
+            </div>
+            <span class="text-slate-400">~</span>
+            <div class="flex items-center space-x-1">
+              <span class="text-xs font-medium text-slate-500 dark:text-slate-400">종료:</span>
+              <input type="date" id="stats-filter-end" onchange="onStatsDateChange()" class="px-2.5 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500">
+            </div>
+          </div>
+          <button onclick="renderCharts()" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 transition flex items-center space-x-1">
+            <i class="ph-bold ph-arrows-clockwise"></i><span>통계 새로고침</span>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col">
+            <h3 class="font-bold text-slate-900 dark:text-white text-sm mb-4">카테고리별 자산 비중</h3>
+            <div class="flex-1 min-h-[300px] relative flex items-center justify-center">
+              <canvas id="categoryValueChart"></canvas>
+            </div>
+          </div>
+
+          <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col">
+            <h3 class="font-bold text-slate-900 dark:text-white text-sm mb-4">품목별 누적 출고 비용 Top 리스트</h3>
+            <div class="overflow-x-auto flex-1">
+              <table class="w-full text-left border-collapse text-sm">
+                <thead>
+                  <tr class="border-b border-slate-200 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400">
+                    <th class="py-2">순위</th><th class="py-2">물품명</th><th class="py-2 text-right">누적비용 ($)</th>
+                  </tr>
+                </thead>
+                <tbody id="top-expenses-table-body" class="divide-y divide-slate-100 dark:divide-slate-700"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-bold text-slate-900 dark:text-white text-sm flex items-center space-x-1.5">
+                <i class="ph-bold ph-user-list text-brand-600 dark:text-brand-400"></i>
+                <span>구매자별 구매 품목 현황</span>
+              </h3>
+              <select id="stats-buyer-select" onchange="renderCharts()" class="px-2 py-1 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500">
+                <option value="ALL">전체 구매자 보기</option>
+              </select>
+            </div>
+            <div class="overflow-x-auto flex-1 max-h-[320px]">
+              <table class="w-full text-left border-collapse text-sm">
+                <thead class="sticky top-0 bg-white dark:bg-slate-800">
+                  <tr class="border-b border-slate-200 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400">
+                    <th class="py-2 px-3">구매자</th>
+                    <th class="py-2 px-3">구매 품목 및 수량</th>
+                    <th class="py-2 px-3 text-right">총 구매횟수</th>
+                  </tr>
+                </thead>
+                <tbody id="buyer-stats-table-body" class="divide-y divide-slate-100 dark:divide-slate-700"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-bold text-slate-900 dark:text-white text-sm flex items-center space-x-1.5">
+                <i class="ph-bold ph-package text-brand-600 dark:text-brand-400"></i>
+                <span>품목별 구매자 현황</span>
+              </h3>
+              <select id="stats-item-select" onchange="renderCharts()" class="px-2 py-1 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500">
+                <option value="ALL">전체 품목 보기</option>
+              </select>
+            </div>
+            <div class="overflow-x-auto flex-1 max-h-[320px]">
+              <table class="w-full text-left border-collapse text-sm">
+                <thead class="sticky top-0 bg-white dark:bg-slate-800">
+                  <tr class="border-b border-slate-200 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400">
+                    <th class="py-2 px-3">품목명</th>
+                    <th class="py-2 px-3">주요 구매자 (수량 합계)</th>
+                    <th class="py-2 px-3 text-right">총 출고량</th>
+                  </tr>
+                </thead>
+                <tbody id="item-buyer-stats-table-body" class="divide-y divide-slate-100 dark:divide-slate-700"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-users" class="tab-content hidden space-y-6">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900 dark:text-white">사용자 계정 관리</h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Users 시트에 등록된 사용자 계정, 이름 및 권한 등급을 조회하고 관리합니다. (S, A, B 등급 전용)</p>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button onclick="openUserModal('add')" class="bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold px-4 py-2 rounded-xl flex items-center space-x-1.5 transition">
+              <i class="ph-bold ph-user-plus text-base"></i><span>사용자 추가</span>
+            </button>
+            <button onclick="fetchDataFromServer()" class="px-3 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-xl text-sm font-medium transition flex items-center space-x-1" title="새로고침">
+              <i class="ph-bold ph-arrows-clockwise text-base"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <th class="py-3 px-4">계정 아이디 (Account)</th>
+                <th class="py-3 px-4">이름 (Name)</th>
+                <th class="py-3 px-4">비밀번호</th>
+                <th class="py-3 px-4">권한 등급 (Level)</th>
+                <th class="py-3 px-4">최종 수정일</th>
+                <th class="py-3 px-4 text-center">관리</th>
+              </tr>
+            </thead>
+            <tbody id="users-table-body" class="divide-y divide-slate-100 dark:divide-slate-700 text-sm"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="item-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+        <h3 id="item-modal-title" class="font-bold text-slate-900 dark:text-white text-base">물품 등록</h3>
+        <button onclick="closeModal('item-modal')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="ph-bold ph-x text-lg"></i></button>
+      </div>
+      <form id="item-form" onsubmit="handleSaveItem(event)" class="p-6 space-y-4">
+        <input type="hidden" id="item-id">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">카테고리 <span class="text-rose-500">*</span></label>
+            <select id="item-category" onchange="onCategoryChange()" class="w-full px-3 py-2 text-sm border dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none bg-white dark:bg-slate-900 dark:text-white"></select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">품목 코드 (자동) <span class="text-rose-500">*</span></label>
+            <input type="text" id="item-code" required readonly placeholder="MCA001" class="w-full px-3 py-2 text-sm border dark:border-slate-700 bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 rounded-lg outline-none font-mono font-bold">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">물품명 (규격) <span class="text-rose-500">*</span></label>
+          <input type="text" id="item-name" required class="w-full px-3 py-2 text-sm border dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none bg-white dark:bg-slate-900 dark:text-white">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">거래처</label>
+          <input type="text" id="item-supplier" placeholder="구매처/공급사명" class="w-full px-3 py-2 text-sm border dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none bg-white dark:bg-slate-900 dark:text-white">
+        </div>
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">단위 단가 ($)</label>
+            <input type="number" id="item-price" min="0" value="0" required class="w-full px-3 py-2 text-sm border dark:border-slate-700 rounded-lg outline-none bg-white dark:bg-slate-900 dark:text-white">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">현재 재고</label>
+            <input type="number" id="item-quantity" min="0" value="0" required class="w-full px-3 py-2 text-sm border dark:border-slate-700 rounded-lg outline-none bg-white dark:bg-slate-900 dark:text-white">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-rose-600 mb-1">안전 재고</label>
+            <input type="number" id="item-min-stock" min="0" value="5" required class="w-full px-3 py-2 text-sm border-rose-200 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/30 text-slate-900 dark:text-white rounded-lg outline-none">
+          </div>
+        </div>
+        <div class="pt-4 flex justify-end space-x-2 border-t border-slate-100 dark:border-slate-700">
+          <button type="button" onclick="closeModal('item-modal')" class="px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">취소</button>
+          <button type="submit" id="btn-save-item" class="px-4 py-2 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg">
+            <span>저장하기</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="multi-order-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-3xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[90vh]">
+      <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-slate-50 dark:bg-slate-800/80">
+        <div class="flex items-center space-x-2">
+          <span class="px-2.5 py-1 text-xs font-bold rounded-lg bg-brand-600 text-white">오더 접수</span>
+          <h3 class="font-bold text-slate-900 dark:text-white text-base">신규 추가 오더 다중 접수 요청</h3>
+        </div>
+        <button onclick="closeModal('multi-order-modal')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="ph-bold ph-x text-lg"></i></button>
+      </div>
+      
+      <form id="multi-order-form" onsubmit="handleSaveMultiOrder(event)" class="p-6 space-y-4 overflow-y-auto flex-1">
+        <div class="flex items-center justify-between mb-2">
+          <label class="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">오더 품목 리스트 (동일 Order ID 부여)</label>
+          <button type="button" onclick="addOrderRow()" class="px-3 py-1 bg-brand-50 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 hover:bg-brand-100 dark:hover:bg-brand-900/50 rounded-lg text-xs font-semibold flex items-center space-x-1 transition">
+            <i class="ph-bold ph-plus"></i><span>품목 추가</span>
+          </button>
+        </div>
+        
+        <div class="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+          <table class="w-full text-left border-collapse">
+            <thead class="bg-slate-100 dark:bg-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300">
+              <tr>
+                <th class="py-2.5 px-3">대상 물품</th>
+                <th class="py-2.5 px-3 w-32 text-right">신청 수량</th>
+                <th class="py-2.5 px-3 w-48">비고 (사유)</th>
+                <th class="py-2.5 px-3 w-16 text-center">삭제</th>
+              </tr>
+            </thead>
+            <tbody id="order-rows-container" class="divide-y divide-slate-100 dark:divide-slate-700 text-sm"></tbody>
+          </table>
+        </div>
+
+        <div class="pt-4 flex justify-end space-x-2 border-t border-slate-100 dark:border-slate-700">
+          <button type="button" onclick="closeModal('multi-order-modal')" class="px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">취소</button>
+          <button type="submit" id="btn-save-multi-order" class="px-4 py-2 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg">오더 일괄 접수하기</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="user-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+        <h3 id="user-modal-title" class="font-bold text-slate-900 dark:text-white text-base">사용자 계정 등록</h3>
+        <button onclick="closeModal('user-modal')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="ph-bold ph-x text-lg"></i></button>
+      </div>
+      <form id="user-form" onsubmit="handleSaveUser(event)" class="p-6 space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">계정 아이디 (Account) <span class="text-rose-500">*</span></label>
+          <input type="text" id="user-account-input" required placeholder="영문 아이디" class="w-full px-3 py-2 text-sm border dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none bg-white dark:bg-slate-900 dark:text-white">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">사용자 이름 (Name) <span class="text-rose-500">*</span></label>
+          <input type="text" id="user-name-input" required placeholder="예: 홍길동" class="w-full px-3 py-2 text-sm border dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none bg-white dark:bg-slate-900 dark:text-white">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">비밀번호 (Password) <span class="text-rose-500">*</span></label>
+          <input type="text" id="user-password-input" required placeholder="비밀번호 입력" class="w-full px-3 py-2 text-sm border dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none bg-white dark:bg-slate-900 dark:text-white">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">권한 등급 (Level) <span class="text-rose-500">*</span></label>
+          <select id="user-level-input" class="w-full px-3 py-2 text-sm border dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none bg-white dark:bg-slate-900 dark:text-white">
+            <option value="S">S 등급 (최고관리자)</option>
+            <option value="A">A 등급 (이사/최종승인)</option>
+            <option value="B">B 등급 (매니저/상신승인)</option>
+            <option value="C">C 등급 (직원)</option>
+            <option value="D">D 등급 (인턴/게스트)</option>
+          </select>
+        </div>
+        <div class="pt-4 flex justify-end space-x-2 border-t border-slate-100 dark:border-slate-700">
+          <button type="button" onclick="closeModal('user-modal')" class="px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">취소</button>
+          <button type="submit" id="btn-save-user" class="px-4 py-2 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg">저장하기</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="help-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[85vh]">
+      <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-slate-50 dark:bg-slate-800/80">
+        <div class="flex items-center space-x-2">
+          <div class="w-7 h-7 rounded-lg bg-brand-50 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 flex items-center justify-center font-bold text-sm">?</div>
+          <h3 class="font-bold text-slate-900 dark:text-white text-base">프로그램 기능 및 사용법 안내</h3>
+        </div>
+        <button onclick="closeModal('help-modal')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="ph-bold ph-x text-lg"></i></button>
+      </div>
+      <div class="p-6 space-y-5 overflow-y-auto text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+        
+        <div class="space-y-1.5">
+          <h4 class="font-bold text-slate-900 dark:text-white flex items-center space-x-1.5">
+            <span class="w-6 h-6 rounded-full bg-brand-100 dark:bg-brand-900/50 text-brand-700 dark:text-brand-300 text-xs flex items-center justify-center font-bold">1</span>
+            <span>물품고유ID 및 품목코드 자동 생성 규칙</span>
+          </h4>
+          <p class="text-xs text-slate-500 dark:text-slate-400 pl-7">신규 물품 등록 시 제작자가 정한 규칙에 따라 자동으로 부여됩니다.</p>
+          <ul class="list-disc list-inside pl-7 space-y-1 text-xs text-slate-600 dark:text-slate-400">
+            <li><strong>물품고유ID:</strong> FZ(냉동식자재), SN(과자류), FD(식품류), FM(식자재류), BV(음료,티,차류) + 001 순차 부여</li>
+            <li><strong>품목코드:</strong> MC(MangoCook) + A001 순차 부여</li>
+          </ul>
+        </div>
+
+        <hr class="border-slate-100 dark:border-slate-700">
+
+        <div class="space-y-1.5">
+          <h4 class="font-bold text-slate-900 dark:text-white flex items-center space-x-1.5">
+            <span class="w-6 h-6 rounded-full bg-brand-100 dark:bg-brand-900/50 text-brand-700 dark:text-brand-300 text-xs flex items-center justify-center font-bold">2</span>
+            <span>접속 등급 및 권한 체계</span>
+          </h4>
+          <div class="pl-7 grid grid-cols-1 gap-1.5 text-xs">
+            <div class="p-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-100 dark:border-slate-700"><strong>S (대표):</strong> 프로그램 모든 부분 엑세스 가능 ([접수], [상신], [결제] 전과정 제어)</div>
+            <div class="p-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-100 dark:border-slate-700"><strong>A (이사):</strong> B등급 인원이 상신한 오더를 최종 결제 승인</div>
+            <div class="p-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-100 dark:border-slate-700"><strong>B (매니저):</strong> C등급 직원이 접수한 추가 오더를 확인 후 1차 상신 승인</div>
+            <div class="p-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-100 dark:border-slate-700"><strong>C (직원):</strong> 사용자 관리 접근 제한 / 위험 재고에 대한 추가 오더 접수 요청</div>
+            <div class="p-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-100 dark:border-slate-700"><strong>D (인턴):</strong> C등급과 동일 / 전체 재고에 대한 부분은 확인만 가능</div>
+          </div>
+        </div>
+
+        <hr class="border-slate-100 dark:border-slate-700">
+
+        <div class="space-y-1.5">
+          <h4 class="font-bold text-slate-900 dark:text-white flex items-center space-x-1.5">
+            <span class="w-6 h-6 rounded-full bg-brand-100 dark:bg-brand-900/50 text-brand-700 dark:text-brand-300 text-xs flex items-center justify-center font-bold">3</span>
+            <span>물품 단종 처리 기준</span>
+          </h4>
+          <p class="text-xs text-slate-600 dark:text-slate-400 pl-7">
+            현 재고와 안전재고를 모두 0으로 설정하면 리스트에서 숨겨집니다.
+          </p>
+        </div>
+
+        <hr class="border-slate-100 dark:border-slate-700">
+
+        <div class="space-y-1.5">
+          <h4 class="font-bold text-slate-900 dark:text-white flex items-center space-x-1.5">
+            <span class="w-6 h-6 rounded-full bg-brand-100 dark:bg-brand-900/50 text-brand-700 dark:text-brand-300 text-xs flex items-center justify-center font-bold">4</span>
+            <span>사용자 삭제 정책</span>
+          </h4>
+          <p class="text-xs text-slate-600 dark:text-slate-400 pl-7">
+            누구도 계정을 삭제할 수 없습니다. 단, 비밀번호 변경은 가능합니다.
+          </p>
+        </div>
+
+      </div>
+      <div class="px-6 py-3 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 flex justify-end">
+        <button type="button" onclick="closeModal('help-modal')" class="px-4 py-2 text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 rounded-xl transition">확인 완료</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="multi-tx-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[90vh]">
+      <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-slate-50 dark:bg-slate-800/80">
+        <div class="flex items-center space-x-2">
+          <span id="multi-tx-badge" class="px-2.5 py-1 text-xs font-bold rounded-lg text-white">입고</span>
+          <h3 id="multi-tx-title" class="font-bold text-slate-900 dark:text-white text-base">다중 물품 입고 등록</h3>
+        </div>
+        <button onclick="closeModal('multi-tx-modal')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="ph-bold ph-x text-lg"></i></button>
+      </div>
+      
+      <form id="multi-tx-form" onsubmit="handleSaveMultiTx(event)" class="p-6 space-y-4 overflow-y-auto flex-1">
+        <input type="hidden" id="multi-tx-type" value="IN">
+        
+        <div id="common-info-box" class="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-700">
+          <div>
+            <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">입고 담당자 <span class="text-rose-500">*</span></label>
+            <input type="text" id="multi-tx-handler" placeholder="처리 담당자명" class="w-full px-3 py-2 text-sm border dark:border-slate-700 rounded-lg outline-none bg-white dark:bg-slate-800 dark:text-white">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">공통 비고 (사유)</label>
+            <input type="text" id="multi-tx-memo" placeholder="전체 적용 사유" class="w-full px-3 py-2 text-sm border dark:border-slate-700 rounded-lg outline-none bg-white dark:bg-slate-800 dark:text-white">
+          </div>
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <label id="tx-rows-label" class="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">처리 품목 리스트</label>
+            <button type="button" onclick="addTxRow()" class="px-3 py-1 bg-brand-50 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 hover:bg-brand-100 dark:hover:bg-brand-900/50 rounded-lg text-xs font-semibold flex items-center space-x-1 transition">
+              <i class="ph-bold ph-plus"></i><span>품목 추가</span>
+            </button>
+          </div>
+          
+          <div class="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+            <table class="w-full text-left border-collapse">
+              <thead id="tx-rows-thead" class="bg-slate-100 dark:bg-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300"></thead>
+              <tbody id="tx-rows-container" class="divide-y divide-slate-100 dark:divide-slate-700 text-sm"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="pt-4 flex justify-end space-x-2 border-t border-slate-100 dark:border-slate-700">
+          <button type="button" onclick="closeModal('multi-tx-modal')" class="px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">취소</button>
+          <button type="submit" id="btn-save-multi-tx" class="px-4 py-2 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg">일괄 등록 처리</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast" class="fixed bottom-6 right-6 z-50 flex items-center space-x-2 px-4 py-3 rounded-xl shadow-lg border text-sm font-medium transition-all duration-300 opacity-0 pointer-events-none translate-y-3">
+    <i id="toast-icon" class="text-lg"></i><span id="toast-msg"></span>
+  </div>
+
+  <script>
+    let state = { items: [], transactions: [], users: [], orders: [], categories: [], currentUser: null };
+    let chartInstance = null;
+    let statsPeriodDays = 'all';
+    let GAS_URL = localStorage.getItem('GAS_WEB_APP_URL') || '';
+
+    // Check if GAS URL is configured
+    window.addEventListener('DOMContentLoaded', () => {
+      if (!GAS_URL) {
+        openGasModal();
+      }
+      initDarkMode();
+    });
+
+    function openGasModal() {
+      document.getElementById('input-gas-url').value = GAS_URL;
+      document.getElementById('gas-url-modal').classList.remove('hidden');
+    }
+
+    function saveGasUrl() {
+      const url = document.getElementById('input-gas-url').value.trim();
+      if (!url) {
+        showToast('유효한 웹 앱 URL을 입력해주세요.', 'error');
+        return;
+      }
+      GAS_URL = url;
+      localStorage.setItem('GAS_WEB_APP_URL', url);
+      document.getElementById('gas-url-modal').classList.add('hidden');
+      showToast('GAS URL이 저장되었습니다.');
+    }
+
+    // Server API Wrapper using fetch for GitHub Pages
+    async function callGasApi(functionName, args = []) {
+      if (!GAS_URL) {
+        openGasModal();
+        throw new Error('GAS URL이 설정되지 않았습니다.');
+      }
+      const response = await fetch(GAS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ functionName, args })
+      });
+      const result = await response.json();
+      if (!result.success && result.message) {
+        throw new Error(result.message);
+      }
+      return result;
+    }
+
+    function initDarkMode() {
+      if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+        const icon = document.getElementById('dark-mode-icon');
+        if(icon) icon.className = 'ph-bold ph-sun text-sm';
+      } else {
+        document.documentElement.classList.remove('dark');
+        const icon = document.getElementById('dark-mode-icon');
+        if(icon) icon.className = 'ph-bold ph-moon text-sm';
+      }
+    }
+
+    function toggleDarkMode() {
+      if (document.documentElement.classList.contains('dark')) {
+        document.documentElement.classList.remove('dark');
+        localStorage.setItem('theme', 'light');
+        document.getElementById('dark-mode-icon').className = 'ph-bold ph-moon text-sm';
+      } else {
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('theme', 'dark');
+        document.getElementById('dark-mode-icon').className = 'ph-bold ph-sun text-sm';
+      }
+    }
+
+    function setStatsPeriod(days) {
+      statsPeriodDays = days;
+      ['all', 7, 30, 365].forEach(d => {
+        const btn = document.getElementById(`btn-stats-${d}`);
+        if(btn) {
+          if(d === days) {
+            btn.className = "px-3 py-1 text-xs font-medium rounded bg-white dark:bg-slate-800 text-slate-800 dark:text-white shadow-sm transition";
+          } else {
+            btn.className = "px-3 py-1 text-xs font-medium rounded text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition";
+          }
+        }
+      });
+
+      const startInput = document.getElementById('stats-filter-start');
+      const endInput = document.getElementById('stats-filter-end');
+
+      if (days === 'all') {
+        startInput.value = '';
+        endInput.value = '';
+      } else {
+        const today = new Date();
+        const endDateStr = today.toISOString().split('T')[0];
+        
+        const pastDate = new Date();
+        pastDate.setDate(today.getDate() - days);
+        const startDateStr = pastDate.toISOString().split('T')[0];
+
+        startInput.value = startDateStr;
+        endInput.value = endDateStr;
+      }
+      renderCharts();
+    }
+
+    function onStatsDateChange() {
+      ['all', 7, 30, 365].forEach(d => {
+        const btn = document.getElementById(`btn-stats-${d}`);
+        if(btn) btn.className = "px-3 py-1 text-xs font-medium rounded text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition";
+      });
+      statsPeriodDays = 'custom';
+      renderCharts();
+    }
+
+    function renderCharts() {
+      let filteredTx = state.transactions.filter(t => t.type === 'OUT');
+      
+      const startDate = document.getElementById('stats-filter-start').value;
+      const endDate = document.getElementById('stats-filter-end').value;
+
+      if (startDate || endDate) {
+        filteredTx = filteredTx.filter(t => {
+          const tDateStr = String(t.date).substring(0, 10);
+          let match = true;
+          if (startDate && tDateStr < startDate) match = false;
+          if (endDate && tDateStr > endDate) match = false;
+          return match;
+        });
+      } else if (statsPeriodDays !== 'all') {
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - Number(statsPeriodDays));
+        const cutoffStr = cutoffDate.toISOString().split('T')[0];
+        filteredTx = filteredTx.filter(t => String(t.date).substring(0, 10) >= cutoffStr);
+      }
+
+      const validItems = state.items.filter(i => !(Number(i.quantity) === 0 && Number(i.minStock) === 0));
+      
+      const catValues = {};
+      validItems.forEach(i => {
+        const cat = i.category || '기타';
+        const val = Number(i.price || 0) * Number(i.quantity || 0);
+        catValues[cat] = (catValues[cat] || 0) + val;
+      });
+
+      const catLabels = Object.keys(catValues);
+      const catDataVals = Object.values(catValues);
+
+      const ctx = document.getElementById('categoryValueChart').getContext('2d');
+      if (chartInstance) chartInstance.destroy();
+
+      chartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: catLabels.length ? catLabels : ['데이터 없음'],
+          datasets: [{
+            data: catDataVals.length ? catDataVals : [1],
+            backgroundColor: ['#6366f1', '#06b6d4', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { color: document.documentElement.classList.contains('dark') ? '#cbd5e1' : '#475569' } } }
+        }
+      });
+
+      const itemCosts = {};
+      filteredTx.forEach(t => {
+        const name = t.itemName || t.itemId;
+        const total = Number(t.totalAmount || (t.quantity * t.price) || 0);
+        itemCosts[name] = (itemCosts[name] || 0) + total;
+      });
+
+      const sortedExpenses = Object.entries(itemCosts).sort((a,b) => b[1] - a[1]).slice(0, 5);
+      const topTbody = document.getElementById('top-expenses-table-body');
+      topTbody.innerHTML = sortedExpenses.length ? sortedExpenses.map(([name, cost], idx) => `
+        <tr>
+          <td class="py-2.5 font-bold text-slate-500 dark:text-slate-400">${idx + 1}위</td>
+          <td class="py-2.5 font-medium text-slate-800 dark:text-slate-200">${name}</td>
+          <td class="py-2.5 text-right font-bold text-brand-600 dark:text-brand-400">$${cost.toLocaleString()}</td>
+        </tr>
+      `).join('') : `<tr><td colspan="3" class="py-6 text-center text-slate-400 text-xs">출고 데이터가 없습니다.</td></tr>`;
+
+      const buyerSelect = document.getElementById('stats-buyer-select');
+      const selectedBuyer = buyerSelect.value;
+      const buyers = [...new Set(filteredTx.map(t => t.buyer).filter(Boolean))];
+      buyerSelect.innerHTML = `<option value="ALL">전체 구매자 보기</option>` + buyers.map(b => `<option value="${b}" ${selectedBuyer === b ? 'selected' : ''}>${b}</option>`).join('');
+
+      const itemSelect = document.getElementById('stats-item-select');
+      const selectedItem = itemSelect.value;
+      const itemsList = [...new Set(filteredTx.map(t => t.itemName).filter(Boolean))];
+      itemSelect.innerHTML = `<option value="ALL">전체 품목 보기</option>` + itemsList.map(it => `<option value="${it}" ${selectedItem === it ? 'selected' : ''}>${it}</option>`).join('');
+
+      const buyerMap = {};
+      filteredTx.forEach(t => {
+        const b = t.buyer || '미지정';
+        if (selectedBuyer !== 'ALL' && b !== selectedBuyer) return;
+        if (!buyerMap[b]) buyerMap[b] = { count: 0, items: {} };
+        buyerMap[b].count++;
+        const itemN = t.itemName || '기타';
+        buyerMap[b].items[itemN] = (buyerMap[b].items[itemN] || 0) + Number(t.quantity || 0);
+      });
+
+      const buyerTbody = document.getElementById('buyer-stats-table-body');
+      buyerTbody.innerHTML = Object.keys(buyerMap).length ? Object.entries(buyerMap).map(([b, info]) => {
+        const itemsStr = Object.entries(info.items).map(([it, q]) => `<span class="inline-block bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded text-xs mr-1 mb-1">${it} (${q}개)</span>`).join('');
+        return `
+          <tr>
+            <td class="py-2.5 px-3 font-bold text-slate-800 dark:text-slate-200">${b}</td>
+            <td class="py-2.5 px-3">${itemsStr}</td>
+            <td class="py-2.5 px-3 text-right font-bold text-slate-900 dark:text-white">${info.count}회</td>
+          </tr>
+        `;
+      }).join('') : `<tr><td colspan="3" class="py-6 text-center text-slate-400 text-xs">구매자 내역이 없습니다.</td></tr>`;
+
+      const itemMap = {};
+      filteredTx.forEach(t => {
+        const itName = t.itemName || '기타';
+        if (selectedItem !== 'ALL' && itName !== selectedItem) return;
+        if (!itemMap[itName]) itemMap[itName] = { totalQty: 0, buyers: {} };
+        itemMap[itName].totalQty += Number(t.quantity || 0);
+        const b = t.buyer || '미지정';
+        itemMap[itName].buyers[b] = (itemMap[itName].buyers[b] || 0) + Number(t.quantity || 0);
+      });
+
+      const itemBuyerTbody = document.getElementById('item-buyer-stats-table-body');
+      itemBuyerTbody.innerHTML = Object.keys(itemMap).length ? Object.entries(itemMap).map(([itName, info]) => {
+        const buyersStr = Object.entries(info.buyers).map(([b, q]) => `<span class="inline-block bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 px-2 py-0.5 rounded text-xs mr-1 mb-1">${b} (${q}개)</span>`).join('');
+        return `
+          <tr>
+            <td class="py-2.5 px-3 font-bold text-slate-800 dark:text-slate-200">${itName}</td>
+            <td class="py-2.5 px-3">${buyersStr}</td>
+            <td class="py-2.5 px-3 text-right font-bold text-brand-600 dark:text-brand-400">${info.totalQty}개</td>
+          </tr>
+        `;
+      }).join('') : `<tr><td colspan="3" class="py-6 text-center text-slate-400 text-xs">품목별 출고 내역이 없습니다.</td></tr>`;
+    }
+
+    function openMultiTxModal(type) {
+      document.getElementById('multi-tx-form').reset();
+      document.getElementById('multi-tx-type').value = type;
+      
+      const badge = document.getElementById('multi-tx-badge');
+      const title = document.getElementById('multi-tx-title');
+      const commonBox = document.getElementById('common-info-box');
+      const thead = document.getElementById('tx-rows-thead');
+      
+      if(type === 'IN') {
+        badge.innerText = '입고';
+        badge.className = 'px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-600 text-white';
+        title.innerText = '다중 물품 입고 등록';
+        commonBox.classList.remove('hidden');
+        
+        thead.innerHTML = `
+          <tr>
+            <th class="py-2.5 px-3">대상 물품</th>
+            <th class="py-2.5 px-3 w-32 text-right">수량</th>
+            <th class="py-2.5 px-3 w-16 text-center">삭제</th>
+          </tr>
+        `;
+      } else {
+        badge.innerText = '출고';
+        badge.className = 'px-2.5 py-1 text-xs font-bold rounded-lg bg-rose-600 text-white';
+        title.innerText = '다중 물품 출고 등록 (품목별 구매자 지정)';
+        commonBox.classList.add('hidden');
+        
+        thead.innerHTML = `
+          <tr>
+            <th class="py-2.5 px-3">대상 물품</th>
+            <th class="py-2.5 px-3 w-36">출고 담당자 <span class="text-rose-500">*</span></th>
+            <th class="py-2.5 px-3 w-36">구매자 <span class="text-rose-500">*</span></th>
+            <th class="py-2.5 px-3 w-28 text-right">수량</th>
+            <th class="py-2.5 px-3 w-16 text-center">삭제</th>
+          </tr>
+        `;
+      }
+
+      document.getElementById('tx-rows-container').innerHTML = '';
+      addTxRow();
+      openModal('multi-tx-modal');
+    }
+
+    function addTxRow() {
+      const type = document.getElementById('multi-tx-type').value;
+      const container = document.getElementById('tx-rows-container');
+      const rowId = 'tx-row-' + Date.now() + Math.floor(Math.random()*1000);
+      
+      const validItems = state.items.filter(i => !(Number(i.quantity) === 0 && Number(i.minStock) === 0));
+      const optionsHtml = validItems.map(i => {
+        const isLow = Number(i.quantity) <= Number(i.minStock);
+        const lowMark = isLow ? ' 🚨 [위험재고]' : '';
+        const styleStr = isLow ? 'style="color: #e11d48; font-weight: bold; background-color: rgba(225, 29, 72, 0.08);"' : '';
+        return `<option value="${i.id}" ${styleStr}>[${i.id}] ${i.name} (재고: ${i.quantity} / 안전: ${i.minStock})${lowMark}</option>`;
+      }).join('');
+      
+      const tr = document.createElement('tr');
+      tr.id = rowId;
+      tr.className = 'hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition';
+      
+      if(type === 'IN') {
+        tr.innerHTML = `
+          <td class="py-2.5 px-3">
+            <select class="tx-row-item w-full px-3 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-lg outline-none bg-white dark:bg-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500" required onchange="updateRowStockInfo(this)">
+              <option value="">-- 물품 선택 --</option>
+              ${optionsHtml}
+            </select>
+            <div class="row-stock-hint text-[11px] text-slate-400 dark:text-slate-500 mt-0.5"></div>
+          </td>
+          <td class="py-2.5 px-3 text-right">
+            <input type="number" min="1" value="1" required class="tx-row-qty w-full px-3 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-lg outline-none text-right font-bold bg-white dark:bg-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500">
+          </td>
+          <td class="py-2.5 px-3 text-center">
+            <button type="button" onclick="removeTxRow('${rowId}')" class="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg transition" title="행 삭제">
+              <i class="ph-bold ph-trash text-base"></i>
+            </button>
+          </td>
+        `;
+      } else {
+        const defaultHandler = state.currentUser ? state.currentUser.name : '';
+        tr.innerHTML = `
+          <td class="py-2.5 px-3">
+            <select class="tx-row-item w-full px-3 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-lg outline-none bg-white dark:bg-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500" required onchange="updateRowStockInfo(this)">
+              <option value="">-- 물품 선택 --</option>
+              ${optionsHtml}
+            </select>
+            <div class="row-stock-hint text-[11px] text-slate-400 dark:text-slate-500 mt-0.5"></div>
+          </td>
+          <td class="py-2.5 px-3">
+            <input type="text" required value="${defaultHandler}" placeholder="담당자명" class="tx-row-handler w-full px-3 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-lg outline-none bg-white dark:bg-slate-900 dark:text-white">
+          </td>
+          <td class="py-2.5 px-3">
+            <input type="text" required placeholder="구매자/부서" class="tx-row-buyer w-full px-3 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-lg outline-none bg-white dark:bg-slate-900 dark:text-white">
+          </td>
+          <td class="py-2.5 px-3 text-right">
+            <input type="number" min="1" value="1" required class="tx-row-qty w-full px-3 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-lg outline-none text-right font-bold bg-white dark:bg-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500">
+          </td>
+          <td class="py-2.5 px-3 text-center">
+            <button type="button" onclick="removeTxRow('${rowId}')" class="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg transition" title="행 삭제">
+              <i class="ph-bold ph-trash text-base"></i>
+            </button>
+          </td>
+        `;
+      }
+      container.appendChild(tr);
+    }
+
+    function removeTxRow(rowId) {
+      const el = document.getElementById(rowId);
+      if(el) el.remove();
+    }
+
+    function updateRowStockInfo(selectEl) {
+      const itemId = selectEl.value;
+      const hintEl = selectEl.parentElement.querySelector('.row-stock-hint');
+      if(!itemId) {
+        if(hintEl) hintEl.innerText = '';
+        return;
+      }
+      const item = state.items.find(i => i.id === itemId);
+      if(item) {
+        const isLow = Number(item.quantity) <= Number(item.minStock);
+        if(hintEl) {
+          hintEl.innerHTML = `현재 재고: <b>${item.quantity}개</b> (안전재고: ${item.minStock}개) ${isLow ? '<span class="text-rose-600 font-bold">🚨 위험재고</span>' : ''}`;
+        }
+      }
+    }
+
+    async function handleSaveMultiTx(event) {
+      event.preventDefault();
+      const type = document.getElementById('multi-tx-type').value;
+      const rows = document.querySelectorAll('#tx-rows-container tr');
+      if(rows.length === 0) {
+        showToast('처리할 품목을 1개 이상 추가해주세요.', 'error');
+        return;
+      }
+
+      const commonHandler = document.getElementById('multi-tx-handler').value;
+      const commonMemo = document.getElementById('multi-tx-memo').value;
+      
+      const txArray = [];
+      for(let row of rows) {
+        const itemId = row.querySelector('.tx-row-item').value;
+        const qty = Number(row.querySelector('.tx-row-qty').value);
+        if(!itemId || qty <= 0) {
+          showToast('모든 행에 올바른 물품과 수량을 입력해주세요.', 'error');
+          return;
+        }
+        const item = state.items.find(i => i.id === itemId);
+        if(!item) continue;
+
+        let handler = commonHandler;
+        let buyer = '';
+        if(type === 'OUT') {
+          handler = row.querySelector('.tx-row-handler').value;
+          buyer = row.querySelector('.tx-row-buyer').value;
+          if(Number(item.quantity) < qty) {
+            showToast(`[${item.name}] 재고가 부족합니다. (현재 재고: ${item.quantity}개)`, 'error');
+            return;
+          }
+        }
+
+        txArray.push({
+          type: type,
+          itemId: item.id,
+          itemName: item.name,
+          quantity: qty,
+          price: Number(item.price || 0),
+          handler: handler || (state.currentUser ? state.currentUser.name : '시스템'),
+          memo: commonMemo || (type === 'IN' ? '다중 입고' : '다중 출고'),
+          buyer: buyer
+        });
+      }
+
+      showLoader(true);
+      try {
+        await callGasApi('addTransactionsBatch', [txArray]);
+        showLoader(false);
+        showToast('입출고 일괄 처리가 완료되었습니다.');
+        closeModal('multi-tx-modal');
+        fetchDataFromServer();
+      } catch (err) {
+        showLoader(false);
+        showToast(err.message || '서버 통신 오류', 'error');
+      }
+    }
+
+    async function rollbackTransaction(txId) {
+      if(!confirm('해당 거래를 취소하고 재고를 원복하시겠습니까?')) return;
+      showLoader(true);
+      try {
+        await callGasApi('rollbackTransaction', [txId]);
+        showLoader(false);
+        showToast('거래가 취소되고 재고가 원복되었습니다.');
+        fetchDataFromServer();
+      } catch (err) {
+        showLoader(false);
+        showToast(err.message || '취소 실패', 'error');
+      }
+    }
+
+    function openMultiOrderModal() {
+      document.getElementById('multi-order-form').reset();
+      document.getElementById('order-rows-container').innerHTML = '';
+      addOrderRow();
+      openModal('multi-order-modal');
+    }
+
+    function addOrderRow() {
+      const container = document.getElementById('order-rows-container');
+      const rowId = 'order-row-' + Date.now() + Math.floor(Math.random()*1000);
+      
+      const validItems = state.items.filter(i => !(Number(i.quantity) === 0 && Number(i.minStock) === 0));
+      const optionsHtml = validItems.map(i => {
+        const isLow = Number(i.quantity) <= Number(i.minStock);
+        const lowMark = isLow ? ' 🚨 [위험재고]' : '';
+        const styleStr = isLow ? 'style="color: #e11d48; font-weight: bold; background-color: rgba(225, 29, 72, 0.08);"' : '';
+        return `<option value="${i.id}" ${styleStr}>[${i.id}] ${i.name} (재고: ${i.quantity} / 안전: ${i.minStock})${lowMark}</option>`;
+      }).join('');
+
+      const tr = document.createElement('tr');
+      tr.id = rowId;
+      tr.className = 'hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition';
+      tr.innerHTML = `
+        <td class="py-2.5 px-3">
+          <select class="order-row-item w-full px-3 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-lg outline-none bg-white dark:bg-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500" required>
+            <option value="">-- 물품 선택 --</option>
+            ${optionsHtml}
+          </select>
+        </td>
+        <td class="py-2.5 px-3 text-right">
+          <input type="number" min="1" value="1" required class="order-row-qty w-full px-3 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-lg outline-none text-right font-bold bg-white dark:bg-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500">
+        </td>
+        <td class="py-2.5 px-3">
+          <input type="text" placeholder="신청 사유 및 비고" class="order-row-memo w-full px-3 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-lg outline-none bg-white dark:bg-slate-900 dark:text-white">
+        </td>
+        <td class="py-2.5 px-3 text-center">
+          <button type="button" onclick="removeOrderRow('${rowId}')" class="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg transition" title="행 삭제">
+            <i class="ph-bold ph-trash text-base"></i>
+          </button>
+        </td>
+      `;
+      container.appendChild(tr);
+    }
+
+    function removeOrderRow(rowId) {
+      const el = document.getElementById(rowId);
+      if(el) el.remove();
+    }
+
+    async function handleSaveMultiOrder(event) {
+      event.preventDefault();
+      const rows = document.querySelectorAll('#order-rows-container tr');
+      if(rows.length === 0) {
+        showToast('오더 품목을 1개 이상 추가해주세요.', 'error');
+        return;
+      }
+
+      const ordersArray = [];
+      for(let row of rows) {
+        const itemId = row.querySelector('.order-row-item').value;
+        const qty = Number(row.querySelector('.order-row-qty').value);
+        const memo = row.querySelector('.order-row-memo').value;
+        if(!itemId || qty <= 0) {
+          showToast('모든 행에 올바른 물품과 수량을 입력해주세요.', 'error');
+          return;
+        }
+        const item = state.items.find(i => i.id === itemId);
+        if(!item) continue;
+
+        ordersArray.push({
+          itemId: item.id,
+          itemName: item.name,
+          quantity: qty,
+          requester: state.currentUser ? state.currentUser.name : '직원',
+          memo: memo || '추가 오더 신청'
+        });
+      }
+
+      showLoader(true);
+      try {
+        await callGasApi('saveOrdersBatch', [ordersArray]);
+        showLoader(false);
+        showToast('오더가 성공적으로 다중 접수되었습니다.');
+        closeModal('multi-order-modal');
+        fetchDataFromServer();
+      } catch (err) {
+        showLoader(false);
+        showToast(err.message || '접수 실패', 'error');
+      }
+    }
+
+    async function updateOrderStatus(orderId, newStatus) {
+      showLoader(true);
+      try {
+        await callGasApi('updateOrderStatus', [orderId, newStatus]);
+        showLoader(false);
+        showToast('오더 단계가 변경되었습니다.');
+        fetchDataFromServer();
+      } catch (err) {
+        showLoader(false);
+        showToast(err.message || '변경 실패', 'error');
+      }
+    }
+
+    function renderOrders() {
+      const tbody = document.getElementById('orders-table-body');
+      const emptyState = document.getElementById('orders-empty-state');
+      
+      const search = (document.getElementById('order-search').value || '').toLowerCase();
+      const stageFilter = document.getElementById('order-filter-stage').value;
+      const start = document.getElementById('order-filter-start').value;
+      const end = document.getElementById('order-filter-end').value;
+
+      let filtered = state.orders.filter(o => {
+        if(stageFilter !== 'ALL' && o.status !== stageFilter) return false;
+        if(search) {
+          const match = String(o.orderId).toLowerCase().includes(search) || 
+                        String(o.itemName).toLowerCase().includes(search) || 
+                        String(o.requester).toLowerCase().includes(search);
+          if(!match) return false;
+        }
+        if(start || end) {
+          const dStr = String(o.date).substring(0, 10);
+          if(start && dStr < start) return false;
+          if(end && dStr > end) return false;
+        }
+        return true;
+      });
+
+      if(filtered.length === 0) {
+        tbody.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+      emptyState.classList.add('hidden');
+
+      const userLevel = state.currentUser ? state.currentUser.level : 'C';
+
+      tbody.innerHTML = filtered.map(o => {
+        let badgeColor = 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900';
+        if(o.status === '상신완료') badgeColor = 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900';
+        if(o.status === '결제승인완료') badgeColor = 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900';
+
+        let actionBtns = '-';
+        if(userLevel === 'S') {
+          if(o.status === '접수완료') {
+            actionBtns = `<button onclick="updateOrderStatus('${o.orderId}', '상신완료')" class="px-2.5 py-1 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition">상신(1차승인)</button>`;
+          } else if(o.status === '상신완료') {
+            actionBtns = `<button onclick="updateOrderStatus('${o.orderId}', '결제승인완료')" class="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 transition">결제 최종승인</button>`;
+          } else {
+            actionBtns = `<span class="text-xs text-slate-400">완료됨</span>`;
+          }
+        } else if(userLevel === 'A') {
+          if(o.status === '상신완료') {
+            actionBtns = `<button onclick="updateOrderStatus('${o.orderId}', '결제승인완료')" class="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 transition">결제 최종승인</button>`;
+          } else {
+            actionBtns = `<span class="text-xs text-slate-400">-</span>`;
+          }
+        } else if(userLevel === 'B') {
+          if(o.status === '접수완료') {
+            actionBtns = `<button onclick="updateOrderStatus('${o.orderId}', '상신완료')" class="px-2.5 py-1 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition">상신(1차승인)</button>`;
+          } else {
+            actionBtns = `<span class="text-xs text-slate-400">-</span>`;
+          }
+        }
+
+        return `
+          <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition">
+            <td class="py-3 px-4 font-mono font-bold text-xs text-brand-600 dark:text-brand-400">${o.orderId}</td>
+            <td class="py-3 px-4 text-xs text-slate-500 dark:text-slate-400">${o.date}</td>
+            <td class="py-3 px-4 font-bold text-slate-900 dark:text-white">${o.itemName}</td>
+            <td class="py-3 px-4 text-right font-bold text-slate-800 dark:text-slate-200">${o.quantity}개</td>
+            <td class="py-3 px-4 text-xs font-medium text-slate-700 dark:text-slate-300">${o.requester}</td>
+            <td class="py-3 px-4 text-xs text-slate-500 dark:text-slate-400">${o.memo || '-'}</td>
+            <td class="py-3 px-4 text-center">
+              <span class="px-2.5 py-1 text-[11px] font-bold rounded-full border ${badgeColor}">${o.status}</span>
+            </td>
+            <td class="py-3 px-4 text-center">${actionBtns}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function resetOrderFilter() {
+      document.getElementById('order-search').value = '';
+      document.getElementById('order-filter-stage').value = 'ALL';
+      document.getElementById('order-filter-start').value = '';
+      document.getElementById('order-filter-end').value = '';
+      renderOrders();
+    }
+
+    function renderDashboardAlerts() {
+      const container = document.getElementById('order-dashboard-alert-container');
+      if(!container) return;
+      const userLevel = state.currentUser ? state.currentUser.level : 'C';
+      
+      let pendingCount = 0;
+      if(userLevel === 'S') {
+        pendingCount = state.orders.filter(o => o.status === '접수완료' || o.status === '상신완료').length;
+      } else if(userLevel === 'A') {
+        pendingCount = state.orders.filter(o => o.status === '상신완료').length;
+      } else if(userLevel === 'B') {
+        pendingCount = state.orders.filter(o => o.status === '접수완료').length;
+      }
+
+      if(pendingCount > 0) {
+        container.innerHTML = `
+          <div class="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-xl flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+              <i class="ph-bold ph-bell-ringing text-amber-600 dark:text-amber-400 text-xl badge-pulse"></i>
+              <div>
+                <h4 class="text-xs font-bold text-amber-900 dark:text-amber-200">승인 대기중인 오더 알림</h4>
+                <p class="text-xs text-amber-700 dark:text-amber-300 mt-0.5">확인 및 승인이 필요한 오더/상신 건이 총 <b>${pendingCount}건</b> 있습니다.</p>
+              </div>
+            </div>
+            <button onclick="switchTab('orders')" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold transition">오더 관리로 이동</button>
+          </div>
+        `;
+      } else {
+        container.innerHTML = '';
+      }
+    }
+
+    async function handleLogin(event) {
+      event.preventDefault();
+      const accountInput = document.getElementById('login-account').value;
+      const passwordInput = document.getElementById('login-password').value;
+
+      showLoader(true, '로그인 인증 중...');
+      try {
+        const res = await callGasApi('verifyLogin', [accountInput, passwordInput]);
+        showLoader(false);
+        if(res.success) {
+          state.currentUser = res.user;
+          initAppAfterLogin();
+        } else {
+          showToast(res.message || '로그인 실패', 'error');
+        }
+      } catch (err) {
+        showLoader(false);
+        showToast(err.message || '로그인 서버 오류', 'error');
+      }
+    }
+
+    function handleLogout() {
+      state.currentUser = null;
+      document.getElementById('main-app-section').classList.add('hidden');
+      document.getElementById('login-section').classList.remove('hidden');
+      document.getElementById('login-account').value = '';
+      document.getElementById('login-password').value = '';
+      showToast('로그아웃 되었습니다.');
+    }
+
+    function initAppAfterLogin() {
+      document.getElementById('login-section').classList.add('hidden');
+      document.getElementById('main-app-section').classList.remove('hidden');
+      document.getElementById('current-user-name').innerText = state.currentUser.name || state.currentUser.account;
+      document.getElementById('current-user-level').innerText = '등급: ' + state.currentUser.level;
+
+      const userLevel = state.currentUser.level;
+      const userTabBtn = document.getElementById('tab-btn-users');
+      if(userLevel === 'S' || userLevel === 'A' || userLevel === 'B') {
+        userTabBtn.classList.remove('hidden');
+      } else {
+        userTabBtn.classList.add('hidden');
+      }
+
+      fetchDataFromServer();
+    }
+
+    async function fetchDataFromServer() {
+      showLoader(true, '서버 데이터 동기화 중...');
+      try {
+        const data = await callGasApi('getAppData');
+        showLoader(false);
+        state.items = data.items || [];
+        state.transactions = data.transactions || [];
+        state.orders = data.orders || [];
+        state.categories = data.categories || ['냉동식자재', '식자재류', '식품류', '과자류', '음료,티,차류'];
+        state.users = data.users || [];
+        renderAll();
+      } catch (err) {
+        showLoader(false);
+        showToast(err.message || '데이터 동기화 실패', 'error');
+      }
+    }
+
+    function renderAll() {
+      renderInventory();
+      renderTransactions();
+      renderOrders();
+      renderCharts();
+      renderUsers();
+      renderDashboardAlerts();
+    }
+
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(el => {
+        el.className = "tab-btn px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center space-x-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700";
+      });
+
+      document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+      const activeBtn = document.getElementById(`tab-btn-${tabName}`);
+      if(activeBtn) {
+        activeBtn.className = "tab-btn active px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center space-x-1 text-brand-600 bg-brand-50 dark:bg-brand-900/40 dark:text-brand-400 shadow-sm border border-brand-200 dark:border-brand-800";
+      }
+    }
+
+    function renderInventory() {
+      const tbody = document.getElementById('inventory-table-body');
+      const emptyState = document.getElementById('inventory-empty-state');
+      
+      const search = (document.getElementById('inventory-search').value || '').toLowerCase();
+      const catFilter = document.getElementById('inventory-category-filter').value;
+      const sortBy = document.getElementById('inventory-sort-by').value;
+
+      const catSelect = document.getElementById('inventory-category-filter');
+      const currentCat = catSelect.value;
+      catSelect.innerHTML = `<option value="ALL">전체 카테고리</option>` + state.categories.map(c => `<option value="${c}" ${currentCat === c ? 'selected' : ''}>${c}</option>`).join('');
+
+      let validItems = state.items.filter(i => {
+        if(Number(i.quantity) === 0 && Number(i.minStock) === 0) return false;
+        if(catFilter !== 'ALL' && i.category !== catFilter) return false;
+        if(search) {
+          const match = String(i.name).toLowerCase().includes(search) || 
+                        String(i.id).toLowerCase().includes(search) || 
+                        String(i.code).toLowerCase().includes(search) || 
+                        String(i.supplier || '').toLowerCase().includes(search);
+          if(!match) return false;
+        }
+        return true;
+      });
+
+      const totalItems = validItems.length;
+      let warningItems = 0;
+      let totalVal = 0;
+
+      validItems.forEach(i => {
+        const q = Number(i.quantity || 0);
+        const min = Number(i.minStock || 0);
+        const p = Number(i.price || 0);
+        if(q <= min) warningItems++;
+        totalVal += q * p;
+      });
+
+      document.getElementById('stat-total-items').innerText = totalItems + '개';
+      document.getElementById('stat-warning-items').innerText = warningItems + '개';
+      document.getElementById('stat-total-value').innerText = '$' + totalVal.toLocaleString();
+
+      const lowContainer = document.getElementById('low-stock-alert-container');
+      if(warningItems > 0) {
+        lowContainer.innerHTML = `
+          <div class="p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 rounded-xl flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+              <i class="ph-bold ph-warning-octagon text-rose-600 dark:text-rose-400 text-xl badge-pulse"></i>
+              <div>
+                <h4 class="text-xs font-bold text-rose-900 dark:text-rose-200">위험 재고 품목 알림</h4>
+                <p class="text-xs text-rose-700 dark:text-rose-300 mt-0.5">안전 재고 이하인 품목이 총 <b>${warningItems}개</b> 있습니다. 즉시 입고 또는 오더가 필요합니다.</p>
+              </div>
+            </div>
+            <button onclick="openMultiOrderModal()" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition">오더 접수하기</button>
+          </div>
+        `;
+      } else {
+        lowContainer.innerHTML = '';
+      }
+
+      validItems.sort((a, b) => {
+        if(sortBy === 'name_asc') return a.name.localeCompare(b.name);
+        if(sortBy === 'stock_asc') return Number(a.quantity) - Number(b.quantity);
+        if(sortBy === 'stock_desc') return Number(b.quantity) - Number(a.quantity);
+        const aLow = Number(a.quantity) <= Number(a.minStock) ? 0 : 1;
+        const bLow = Number(b.quantity) <= Number(b.minStock) ? 0 : 1;
+        if(aLow !== bLow) return aLow - bLow;
+        return a.id.localeCompare(b.id);
+      });
+
+      if(validItems.length === 0) {
+        tbody.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+      emptyState.classList.add('hidden');
+
+      tbody.innerHTML = validItems.map(i => {
+        const q = Number(i.quantity || 0);
+        const min = Number(i.minStock || 0);
+        const isLow = q <= min;
+        const total = q * Number(i.price || 0);
+
+        return `
+          <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition">
+            <td class="py-3 px-4">
+              <span class="px-2.5 py-1 text-[11px] font-bold rounded-full border ${isLow ? 'bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900' : 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900'}">
+                ${isLow ? '🚨 재고부족' : '정상'}
+              </span>
+            </td>
+            <td class="py-3 px-4 font-mono font-bold text-xs text-brand-600 dark:text-brand-400">${i.id}</td>
+            <td class="py-3 px-4 font-mono text-xs text-slate-600 dark:text-slate-400">${i.code || '-'}</td>
+            <td class="py-3 px-4 font-bold text-slate-900 dark:text-white">${i.name}</td>
+            <td class="py-3 px-4 text-xs font-medium text-slate-700 dark:text-slate-300">${i.category}</td>
+            <td class="py-3 px-4 text-xs text-slate-500 dark:text-slate-400">${i.supplier || '-'}</td>
+            <td class="py-3 px-4 text-right font-bold text-slate-900 dark:text-white">${q}개</td>
+            <td class="py-3 px-4 text-right text-rose-600 dark:text-rose-400 font-semibold">${min}개</td>
+            <td class="py-3 px-4 text-right">$${Number(i.price || 0).toLocaleString()}</td>
+            <td class="py-3 px-4 text-right font-bold text-brand-600 dark:text-brand-400">$${total.toLocaleString()}</td>
+            <td class="py-3 px-4 text-center">
+              <button onclick="openItemModal('edit', '${i.id}')" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 hover:bg-brand-50 dark:hover:bg-brand-900/40 hover:text-brand-600 dark:hover:text-brand-400 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-bold transition">수정</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderTransactions() {
+      const tbody = document.getElementById('transaction-table-body');
+      const emptyState = document.getElementById('tx-empty-state');
+      
+      const typeFilter = document.getElementById('tx-filter-type').value;
+      const start = document.getElementById('tx-filter-start').value;
+      const end = document.getElementById('tx-filter-end').value;
+
+      let filtered = state.transactions.filter(t => {
+        if(typeFilter !== 'ALL' && t.type !== typeFilter) return false;
+        if(start || end) {
+          const dStr = String(t.date).substring(0, 10);
+          if(start && dStr < start) return false;
+          if(end && dStr > end) return false;
+        }
+        return true;
+      });
+
+      if(filtered.length === 0) {
+        tbody.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+      emptyState.classList.add('hidden');
+
+      tbody.innerHTML = filtered.map(t => {
+        const isIn = t.type === 'IN';
+        return `
+          <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition">
+            <td class="py-3 px-4 text-xs text-slate-500 dark:text-slate-400">${t.date}</td>
+            <td class="py-3 px-4">
+              <span class="px-2 py-0.5 text-[11px] font-bold rounded ${isIn ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' : 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300'}">
+                ${isIn ? '입고 (IN)' : '출고 (OUT)'}
+              </span>
+            </td>
+            <td class="py-3 px-4 font-bold text-slate-900 dark:text-white">${t.itemName || t.itemId}</td>
+            <td class="py-3 px-4 text-right font-bold ${isIn ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}">${isIn ? '+' : '-'}${t.quantity}개</td>
+            <td class="py-3 px-4 text-right">$${Number(t.price || 0).toLocaleString()}</td>
+            <td class="py-3 px-4 text-right font-bold text-slate-900 dark:text-white">$${Number(t.totalAmount || (t.quantity * t.price) || 0).toLocaleString()}</td>
+            <td class="py-3 px-4 text-xs font-medium text-slate-700 dark:text-slate-300">${t.handler || '-'}</td>
+            <td class="py-3 px-4 text-xs text-slate-600 dark:text-slate-400">${t.buyer || '-'}</td>
+            <td class="py-3 px-4 text-xs text-slate-500 dark:text-slate-400">${t.memo || '-'}</td>
+            <td class="py-3 px-4 text-center">
+              <button onclick="rollbackTransaction('${t.txId}')" class="px-2 py-1 bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-400 rounded text-xs font-bold transition" title="실수 시 거래 취소 및 재고 원복">되돌리기</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function setDateRange(days) {
+      ['all', 7, 30].forEach(d => {
+        const btn = document.getElementById(`btn-date-${d}`);
+        if(btn) {
+          if(d === days) {
+            btn.className = "px-2.5 py-1 text-xs font-medium rounded bg-white dark:bg-slate-800 text-slate-800 dark:text-white shadow-sm transition";
+          } else {
+            btn.className = "px-2.5 py-1 text-xs font-medium rounded text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition";
+          }
+        }
+      });
+
+      const startInput = document.getElementById('tx-filter-start');
+      const endInput = document.getElementById('tx-filter-end');
+
+      if (days === 'all') {
+        startInput.value = '';
+        endInput.value = '';
+      } else {
+        const today = new Date();
+        const endDateStr = today.toISOString().split('T')[0];
+        
+        const pastDate = new Date();
+        pastDate.setDate(today.getDate() - days);
+        const startDateStr = pastDate.toISOString().split('T')[0];
+
+        startInput.value = startDateStr;
+        endInput.value = endDateStr;
+      }
+      renderTransactions();
+    }
+
+    function onDateInputChange() {
+      ['all', 7, 30].forEach(d => {
+        const btn = document.getElementById(`btn-date-${d}`);
+        if(btn) btn.className = "px-2.5 py-1 text-xs font-medium rounded text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition";
+      });
+      renderTransactions();
+    }
+
+    function resetTxFilter() {
+      document.getElementById('tx-filter-start').value = '';
+      document.getElementById('tx-filter-end').value = '';
+      document.getElementById('tx-filter-type').value = 'ALL';
+      setDateRange('all');
+    }
+
+    function exportTransactions() {
+      let csv = '\ufeff일시,구분,물품명,수량,단가,총액,담당자,구매자,비고\n';
+      state.transactions.forEach(t => {
+        csv += `"${t.date}","${t.type}","${t.itemName || ''}",${t.quantity},${t.price},${t.totalAmount || (t.quantity * t.price)},"${t.handler || ''}","${t.buyer || ''}","${t.memo || ''}"\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'transactions_' + new Date().toISOString().split('T')[0] + '.csv';
+      a.click();
+    }
+
+    function renderUsers() {
+      const tbody = document.getElementById('users-table-body');
+      if(!tbody) return;
+      if(!state.users || state.users.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-400 text-xs">등록된 사용자가 없습니다.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = state.users.map(u => `
+        <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition">
+          <td class="py-3 px-4 font-bold text-slate-900 dark:text-white">${u.account}</td>
+          <td class="py-3 px-4 font-bold text-brand-600 dark:text-brand-400">${u.name || '-'}</td>
+          <td class="py-3 px-4 font-mono text-xs text-slate-600 dark:text-slate-400">••••••••</td>
+          <td class="py-3 px-4">
+            <span class="px-2.5 py-1 text-xs font-bold rounded-full bg-brand-50 dark:bg-brand-900/40 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-800">등급: ${u.level}</span>
+          </td>
+          <td class="py-3 px-4 text-xs text-slate-500 dark:text-slate-400">${u.updated || '-'}</td>
+          <td class="py-3 px-4 text-center">
+            <button onclick="openUserModal('edit', '${u.account}')" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 hover:bg-brand-50 dark:hover:bg-brand-900/40 hover:text-brand-600 dark:hover:text-brand-400 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-bold transition">정보수정</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function openUserModal(mode, account='') {
+      document.getElementById('user-form').reset();
+      const title = document.getElementById('user-modal-title');
+      const accInput = document.getElementById('user-account-input');
+      const nameInput = document.getElementById('user-name-input');
+      const pwInput = document.getElementById('user-password-input');
+      
+      if(mode === 'edit') {
+        title.innerText = '사용자 정보 수정';
+        const user = state.users.find(u => u.account === account);
+        if(user) {
+          accInput.value = user.account;
+          accInput.readOnly = true;
+          nameInput.value = user.name || '';
+          pwInput.value = user.password;
+          document.getElementById('user-level-input').value = user.level;
+        }
+      } else {
+        title.innerText = '신규 사용자 등록';
+        accInput.value = '';
+        accInput.readOnly = false;
+        nameInput.value = '';
+        pwInput.value = '';
+      }
+      openModal('user-modal');
+    }
+
+    async function handleSaveUser(event) {
+      event.preventDefault();
+      const account = document.getElementById('user-account-input').value.trim();
+      const name = document.getElementById('user-name-input').value.trim();
+      const password = document.getElementById('user-password-input').value;
+      const level = document.getElementById('user-level-input').value;
+
+      const userData = { account, name, password, level };
+      showLoader(true, '사용자 정보 저장 중...');
+      try {
+        await callGasApi('saveUser', [userData]);
+        showLoader(false);
+        showToast('사용자 정보가 저장되었습니다.');
+        closeModal('user-modal');
+        fetchDataFromServer();
+      } catch (err) {
+        showLoader(false);
+        showToast(err.message || '저장 실패', 'error');
+      }
+    }
+
+    function openItemModal(mode, id='') {
+      document.getElementById('item-form').reset();
+      const title = document.getElementById('item-modal-title');
+      
+      const catSelect = document.getElementById('item-category');
+      catSelect.innerHTML = state.categories.map(c => `<option value="${c}">${c}</option>`).join('');
+
+      if(mode === 'edit') {
+        title.innerText = '물품 정보 수정';
+        const item = state.items.find(i => i.id === id);
+        if(item) {
+          document.getElementById('item-id').value = item.id;
+          catSelect.value = item.category;
+          document.getElementById('item-code').value = item.code || '';
+          document.getElementById('item-name').value = item.name;
+          document.getElementById('item-supplier').value = item.supplier || '';
+          document.getElementById('item-price').value = item.price || 0;
+          document.getElementById('item-quantity').value = item.quantity || 0;
+          document.getElementById('item-min-stock').value = item.minStock || 5;
+        }
+      } else {
+        title.innerText = '신규 물품 등록';
+        document.getElementById('item-id').value = '';
+        onCategoryChange();
+      }
+      openModal('item-modal');
+    }
+
+    function onCategoryChange() {
+      const cat = document.getElementById('item-category').value;
+      const prefixMap = { '냉동식자재': 'FZ', '식자재류': 'FM', '식품류': 'FD', '과자류': 'SN', '음료,티,차류': 'BV' };
+      const prefix = prefixMap[cat] || 'FZ';
+
+      let maxNum = 0;
+      state.items.forEach(i => {
+        if(i.id && i.id.startsWith(prefix + '-')) {
+          const m = i.id.match(new RegExp(`^${prefix}-(\\d+)$`));
+          if(m) {
+            const n = parseInt(m[1], 10);
+            if(n > maxNum) maxNum = n;
+          }
+        }
+      });
+      const generatedId = `${prefix}-${String(maxNum + 1).padStart(3, '0')}`;
+
+      let maxCodeNum = 0;
+      state.items.forEach(i => {
+        if(i.code && i.code.startsWith('MCA')) {
+          const m = i.code.match(/^MCA(\d+)$/);
+          if(m) {
+            const n = parseInt(m[1], 10);
+            if(n > maxCodeNum) maxCodeNum = n;
+          }
+        }
+      });
+      const generatedCode = `MCA${String(maxCodeNum + 1).padStart(3, '0')}`;
+      document.getElementById('item-code').value = generatedCode;
+    }
+
+    async function handleSaveItem(event) {
+      event.preventDefault();
+      const id = document.getElementById('item-id').value;
+      const name = document.getElementById('item-name').value.trim();
+
+      const dup = state.items.find(i => i.name.trim() === name && i.id !== id);
+      if(dup) {
+        showToast('이미 등록된 제품입니다', 'error');
+        return;
+      }
+
+      const itemData = {
+        id: id,
+        code: document.getElementById('item-code').value,
+        name: name,
+        category: document.getElementById('item-category').value,
+        price: Number(document.getElementById('item-price').value || 0),
+        quantity: Number(document.getElementById('item-quantity').value || 0),
+        minStock: Number(document.getElementById('item-min-stock').value || 0),
+        supplier: document.getElementById('item-supplier').value,
+        handlerName: state.currentUser ? state.currentUser.name : '시스템'
+      };
+
+      showLoader(true, '물품 정보 저장 중...');
+      try {
+        await callGasApi('saveItem', [itemData]);
+        showLoader(false);
+        showToast('물품 정보가 성공적으로 저장되었습니다.');
+        closeModal('item-modal');
+        fetchDataFromServer();
+      } catch (err) {
+        showLoader(false);
+        showToast(err.message || '저장 실패', 'error');
+      }
+    }
+
+    function openModal(modalId) {
+      document.getElementById(modalId).classList.remove('hidden');
+    }
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.add('hidden');
+    }
+
+    function showLoader(show, text='데이터 처리 중...') {
+      const loader = document.getElementById('global-loader');
+      document.getElementById('loader-text').innerText = text;
+      if(loader) {
+        if(show) loader.classList.remove('hidden');
+        else loader.classList.add('hidden');
+      }
+    }
+
+    function showToast(msg, type='success') {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-msg').innerText = msg;
+      toast.className = `fixed bottom-6 right-6 z-50 flex items-center space-x-2 px-4 py-3 rounded-xl shadow-lg border text-sm font-medium transition-all duration-300 ${type === 'success' ? 'bg-slate-900 text-white border-slate-800' : 'bg-rose-600 text-white border-rose-700'}`;
+      document.getElementById('toast-icon').className = type === 'success' ? 'ph-bold ph-check-circle text-emerald-400 text-lg' : 'ph-bold ph-warning-circle text-white text-lg';
+      toast.style.opacity = '1'; toast.style.transform = 'translateY(0)';
+      setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateY(12px)'; }, 3000);
+    }
+  </script>
+</body>
+</html>
