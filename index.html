@@ -91,34 +91,34 @@
             </div>
           </div>
 
-          <nav class="hidden md:flex items-center space-x-2">
-            <button onclick="switchTab('inventory')" id="tab-btn-inventory" class="tab-btn active px-3 py-2 text-xs font-bold rounded-xl transition-all flex items-center space-x-1.5 text-brand-600 bg-brand-50 dark:bg-brand-900/40 dark:text-brand-400 shadow-sm border border-brand-200 dark:border-brand-800">
-              <i class="ph-bold ph-squares-four text-base"></i><span>전체 재고</span>
+          <nav class="hidden md:flex items-center space-x-1.5">
+            <button onclick="switchTab('inventory')" id="tab-btn-inventory" class="tab-btn active px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center space-x-1 text-brand-600 bg-brand-50 dark:bg-brand-900/40 dark:text-brand-400 shadow-sm border border-brand-200 dark:border-brand-800">
+              <i class="ph-bold ph-squares-four text-sm"></i><span>전체 재고</span>
             </button>
-            <button onclick="switchTab('transactions')" id="tab-btn-transactions" class="tab-btn px-3 py-2 text-xs font-bold rounded-xl transition-all flex items-center space-x-1.5 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700">
-              <i class="ph-bold ph-arrows-left-right text-base"></i><span>입/출고 관리</span>
+            <button onclick="switchTab('transactions')" id="tab-btn-transactions" class="tab-btn px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center space-x-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700">
+              <i class="ph-bold ph-arrows-left-right text-sm"></i><span>입/출고</span>
             </button>
-            <button onclick="switchTab('orders')" id="tab-btn-orders" class="tab-btn px-3 py-2 text-xs font-bold rounded-xl transition-all flex items-center space-x-1.5 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700">
-              <i class="ph-bold ph-clipboard-text text-base"></i><span>오더/결제 관리</span>
+            <button onclick="switchTab('orders')" id="tab-btn-orders" class="tab-btn px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center space-x-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700">
+              <i class="ph-bold ph-clipboard-text text-sm"></i><span>오더/결제</span>
             </button>
-            <button onclick="switchTab('analytics')" id="tab-btn-analytics" class="tab-btn px-3 py-2 text-xs font-bold rounded-xl transition-all flex items-center space-x-1.5 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700">
-              <i class="ph-bold ph-chart-pie-slice text-base"></i><span>통계 분석</span>
+            <button onclick="switchTab('analytics')" id="tab-btn-analytics" class="tab-btn px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center space-x-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700">
+              <i class="ph-bold ph-chart-pie-slice text-sm"></i><span>통계 분석</span>
             </button>
-            <button onclick="switchTab('users')" id="tab-btn-users" class="tab-btn hidden px-3 py-2 text-xs font-bold rounded-xl transition-all flex items-center space-x-1.5 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700">
-              <i class="ph-bold ph-users-three text-base"></i><span>사용자 관리</span>
+            <button onclick="switchTab('users')" id="tab-btn-users" class="tab-btn hidden px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center space-x-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700">
+              <i class="ph-bold ph-users-three text-sm"></i><span>사용자</span>
             </button>
           </nav>
 
           <div class="flex items-center space-x-2">
-            <button onclick="openItemModal('add')" class="bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl flex items-center space-x-1.5 shadow-sm transition whitespace-nowrap">
+            <button onclick="openItemModal('add')" class="bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center space-x-1 shadow-sm transition whitespace-nowrap">
               <i class="ph-bold ph-plus text-sm"></i>
               <span>물품 등록</span>
             </button>
-            <button onclick="toggleDarkMode()" class="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-200 text-xs font-bold p-2 rounded-xl transition flex items-center justify-center" title="다크모드 전환">
-              <i id="dark-mode-icon" class="ph-bold ph-moon text-base"></i>
+            <button onclick="toggleDarkMode()" class="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-200 text-xs font-bold p-2 rounded-lg transition flex items-center justify-center" title="다크모드 전환">
+              <i id="dark-mode-icon" class="ph-bold ph-moon text-sm"></i>
             </button>
-            <button onclick="handleLogout()" class="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-200 text-xs font-bold px-2.5 py-2 rounded-xl flex items-center space-x-1 transition" title="로그아웃">
-              <i class="ph-bold ph-sign-out text-base"></i>
+            <button onclick="handleLogout()" class="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-200 text-xs font-bold px-2.5 py-1.5 rounded-lg flex items-center space-x-1 transition" title="로그아웃">
+              <i class="ph-bold ph-sign-out text-sm"></i>
               <span class="hidden md:inline">로그아웃</span>
             </button>
           </div>
@@ -470,7 +470,10 @@
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">카테고리 <span class="text-rose-500">*</span></label>
-            <select id="item-category" onchange="onCategoryChange()" class="w-full px-3 py-2 text-sm border dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none bg-white dark:bg-slate-900 dark:text-white"></select>
+            <div class="flex space-x-1.5">
+              <select id="item-category" onchange="onCategoryChange()" class="w-full px-3 py-2 text-sm border dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none bg-white dark:bg-slate-900 dark:text-white"></select>
+              <button type="button" onclick="promptAddCategory()" class="px-2.5 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-brand-50 dark:hover:bg-brand-900 text-slate-600 dark:text-slate-300 hover:text-brand-600 rounded-lg text-xs font-bold transition whitespace-nowrap" title="신규 카테고리 추가">+ 추가</button>
+            </div>
           </div>
           <div>
             <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">품목 코드 (자동) <span class="text-rose-500">*</span></label>
@@ -602,11 +605,7 @@
             <span class="w-6 h-6 rounded-full bg-brand-100 dark:bg-brand-900/50 text-brand-700 dark:text-brand-300 text-xs flex items-center justify-center font-bold">1</span>
             <span>물품고유ID 및 품목코드 자동 생성 규칙</span>
           </h4>
-          <p class="text-xs text-slate-500 dark:text-slate-400 pl-7">신규 물품 등록 시 제작자가 정한 규칙에 따라 자동으로 부여됩니다.</p>
-          <ul class="list-disc list-inside pl-7 space-y-1 text-xs text-slate-600 dark:text-slate-400">
-            <li><strong>물품고유ID:</strong> FZ(냉동식자재), SN(과자류), FD(식품류), FM(식자재류), BV(음료,티,차류) + 001 순차 부여</li>
-            <li><strong>품목코드:</strong> MC(MangoCook) + A001 순차 부여</li>
-          </ul>
+          <p class="text-xs text-slate-500 dark:text-slate-400 pl-7">신규 물품 등록 시 설정(Settings)에 등록된 카테고리별 고유 ID 접두사와 자동 코드 규칙에 따라 생성됩니다.</p>
         </div>
 
         <hr class="border-slate-100 dark:border-slate-700">
@@ -632,9 +631,7 @@
             <span class="w-6 h-6 rounded-full bg-brand-100 dark:bg-brand-900/50 text-brand-700 dark:text-brand-300 text-xs flex items-center justify-center font-bold">3</span>
             <span>물품 단종 처리 기준</span>
           </h4>
-          <p class="text-xs text-slate-600 dark:text-slate-400 pl-7">
-            현 재고와 안전재고를 모두 0으로 설정하면 리스트에서 숨겨집니다.
-          </p>
+          <p class="text-xs text-slate-600 dark:text-slate-400 pl-7">현 재고와 안전재고를 모두 0으로 설정하면 리스트에서 숨겨집니다.</p>
         </div>
 
         <hr class="border-slate-100 dark:border-slate-700">
@@ -644,9 +641,7 @@
             <span class="w-6 h-6 rounded-full bg-brand-100 dark:bg-brand-900/50 text-brand-700 dark:text-brand-300 text-xs flex items-center justify-center font-bold">4</span>
             <span>사용자 삭제 정책</span>
           </h4>
-          <p class="text-xs text-slate-600 dark:text-slate-400 pl-7">
-            누구도 계정을 삭제할 수 없습니다. 단, 비밀번호 변경은 가능합니다.
-          </p>
+          <p class="text-xs text-slate-600 dark:text-slate-400 pl-7">누구도 계정을 삭제할 수 없습니다. 단, 비밀번호 변경은 가능합니다.</p>
         </div>
 
       </div>
@@ -709,7 +704,7 @@
   </div>
 
   <script>
-    let state = { items: [], transactions: [], users: [], orders: [], categories: [], currentUser: null };
+    let state = { items: [], transactions: [], users: [], orders: [], categories: [], categoryPrefixes: {}, currentUser: null };
     let chartInstance = null;
     let statsPeriodDays = 'all';
     const GAS_URL = "https://script.google.com/macros/s/AKfycbwTGk8SIphCoeAhW9YWgzTRM0KkUvFr3svqi8KzN8zNRhOOK-BttZR07NvOldZiHb_4/exec";
@@ -735,11 +730,11 @@
       if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
         document.documentElement.classList.add('dark');
         const icon = document.getElementById('dark-mode-icon');
-        if(icon) icon.className = 'ph-bold ph-sun text-base';
+        if(icon) icon.className = 'ph-bold ph-sun text-sm';
       } else {
         document.documentElement.classList.remove('dark');
         const icon = document.getElementById('dark-mode-icon');
-        if(icon) icon.className = 'ph-bold ph-moon text-base';
+        if(icon) icon.className = 'ph-bold ph-moon text-sm';
       }
     }
 
@@ -747,11 +742,11 @@
       if (document.documentElement.classList.contains('dark')) {
         document.documentElement.classList.remove('dark');
         localStorage.setItem('theme', 'light');
-        document.getElementById('dark-mode-icon').className = 'ph-bold ph-moon text-base';
+        document.getElementById('dark-mode-icon').className = 'ph-bold ph-moon text-sm';
       } else {
         document.documentElement.classList.add('dark');
         localStorage.setItem('theme', 'dark');
-        document.getElementById('dark-mode-icon').className = 'ph-bold ph-sun text-base';
+        document.getElementById('dark-mode-icon').className = 'ph-bold ph-sun text-sm';
       }
     }
 
@@ -1402,6 +1397,7 @@
         state.transactions = data.transactions || [];
         state.orders = data.orders || [];
         state.categories = data.categories || ['냉동식자재', '식자재류', '식품류', '과자류', '음료,티,차류'];
+        state.categoryPrefixes = data.categoryPrefixes || { '냉동식자재': 'FZ', '식자재류': 'FM', '식품류': 'FD', '과자류': 'SN', '음료,티,차류': 'BV' };
         state.users = data.users || [];
         renderAll();
       } catch (err) {
@@ -1422,13 +1418,13 @@
     function switchTab(tabName) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
       document.querySelectorAll('.tab-btn').forEach(el => {
-        el.className = "tab-btn px-3 py-2 text-xs font-bold rounded-xl transition-all flex items-center space-x-1.5 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700";
+        el.className = "tab-btn px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center space-x-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700";
       });
 
       document.getElementById(`tab-${tabName}`).classList.remove('hidden');
       const activeBtn = document.getElementById(`tab-btn-${tabName}`);
       if(activeBtn) {
-        activeBtn.className = "tab-btn active px-3 py-2 text-xs font-bold rounded-xl transition-all flex items-center space-x-1.5 text-brand-600 bg-brand-50 dark:bg-brand-900/40 dark:text-brand-400 shadow-sm border border-brand-200 dark:border-brand-800";
+        activeBtn.className = "tab-btn active px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center space-x-1 text-brand-600 bg-brand-50 dark:bg-brand-900/40 dark:text-brand-400 shadow-sm border border-brand-200 dark:border-brand-800";
       }
     }
 
@@ -1748,10 +1744,32 @@
       openModal('item-modal');
     }
 
+    function promptAddCategory() {
+      const newCat = prompt('추가할 새로운 카테고리 이름을 입력하세요:');
+      if(!newCat || !newCat.trim()) return;
+      const trimmed = newCat.trim();
+      if(state.categories.includes(trimmed)) {
+        showToast('이미 존재하는 카테고리입니다.', 'error');
+        return;
+      }
+      const newPrefix = prompt(`[${trimmed}] 카테고리에 사용할 물품고유ID 코드(영문 약자)를 입력하세요 (예: OT):`, 'OT');
+      if(!newPrefix || !newPrefix.trim()) return;
+      const prefixUpper = newPrefix.trim().toUpperCase();
+
+      callGasApi('saveCategory', [trimmed, prefixUpper]).then(() => {
+        showToast('새로운 카테고리가 등록되었습니다.');
+        fetchDataFromServer().then(() => {
+          document.getElementById('item-category').value = trimmed;
+          onCategoryChange();
+        });
+      }).catch(err => {
+        showToast(err.message || '카테고리 등록 실패', 'error');
+      });
+    }
+
     function onCategoryChange() {
       const cat = document.getElementById('item-category').value;
-      const prefixMap = { '냉동식자재': 'FZ', '식자재류': 'FM', '식품류': 'FD', '과자류': 'SN', '음료,티,차류': 'BV' };
-      const prefix = prefixMap[cat] || 'FZ';
+      const prefix = (state.categoryPrefixes && state.categoryPrefixes[cat]) || 'EX';
 
       let maxNum = 0;
       state.items.forEach(i => {
