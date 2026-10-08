@@ -105,7 +105,7 @@
               <i class="ph-bold ph-chart-pie-slice text-sm"></i><span>통계 분석</span>
             </button>
             <button onclick="switchTab('users')" id="tab-btn-users" class="tab-btn hidden px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center space-x-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700">
-              <i class="ph-bold ph-users-three text-sm"></i><span>사용자</span>
+              <i class="ph-bold ph-gear text-sm"></i><span>설정 관리</span>
             </button>
           </nav>
 
@@ -427,33 +427,62 @@
       <section id="tab-users" class="tab-content hidden space-y-6">
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
           <div>
-            <h2 class="text-lg font-bold text-slate-900 dark:text-white">사용자 계정 관리</h2>
-            <p class="text-xs text-slate-500 dark:text-slate-400">Users 시트에 등록된 사용자 계정, 이름 및 권한 등급을 조회하고 관리합니다. (S, A, B 등급 전용)</p>
+            <h2 class="text-lg font-bold text-slate-900 dark:text-white">시스템 설정 관리</h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400">사용자 계정 권한 및 물품 카테고리/고유ID 접두사를 관리합니다. (S, A, B 등급 전용)</p>
           </div>
           <div class="flex items-center space-x-2">
-            <button onclick="openUserModal('add')" class="bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold px-4 py-2 rounded-xl flex items-center space-x-1.5 transition">
-              <i class="ph-bold ph-user-plus text-base"></i><span>사용자 추가</span>
-            </button>
             <button onclick="fetchDataFromServer()" class="px-3 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-xl text-sm font-medium transition flex items-center space-x-1" title="새로고침">
               <i class="ph-bold ph-arrows-clockwise text-base"></i>
             </button>
           </div>
         </div>
 
-        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-          <table class="w-full text-left border-collapse">
-            <thead>
-              <tr class="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                <th class="py-3 px-4">계정 아이디 (Account)</th>
-                <th class="py-3 px-4">사용자 이름 (Name)</th>
-                <th class="py-3 px-4">비밀번호</th>
-                <th class="py-3 px-4">권한 등급 (Level)</th>
-                <th class="py-3 px-4">최종 수정일</th>
-                <th class="py-3 px-4 text-center">관리</th>
-              </tr>
-            </thead>
-            <tbody id="users-table-body" class="divide-y divide-slate-100 dark:divide-slate-700 text-sm"></tbody>
-          </table>
+        <div class="flex space-x-2 border-b border-slate-200 dark:border-slate-700 pb-2">
+          <button onclick="switchSettingsSubTab('users')" id="sub-tab-btn-users" class="px-4 py-2 text-xs font-bold rounded-lg bg-brand-600 text-white shadow-sm transition">사용자 계정 관리</button>
+          <button onclick="switchSettingsSubTab('categories')" id="sub-tab-btn-categories" class="px-4 py-2 text-xs font-bold rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition">물품 카테고리 관리</button>
+        </div>
+
+        <div id="sub-tab-users-content" class="space-y-4">
+          <div class="flex justify-end">
+            <button onclick="openUserModal('add')" class="bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl flex items-center space-x-1.5 transition">
+              <i class="ph-bold ph-user-plus text-sm"></i><span>사용자 추가</span>
+            </button>
+          </div>
+          <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  <th class="py-3 px-4">계정 아이디</th>
+                  <th class="py-3 px-4">사용자 이름</th>
+                  <th class="py-3 px-4">비밀번호</th>
+                  <th class="py-3 px-4">권한 등급</th>
+                  <th class="py-3 px-4">최종 수정일</th>
+                  <th class="py-3 px-4 text-center">관리</th>
+                </tr>
+              </thead>
+              <tbody id="users-table-body" class="divide-y divide-slate-100 dark:divide-slate-700 text-sm"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="sub-tab-categories-content" class="space-y-4 hidden">
+          <div class="flex justify-end">
+            <button onclick="openCategoryModal()" class="bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl flex items-center space-x-1.5 transition">
+              <i class="ph-bold ph-plus text-sm"></i><span>신규 카테고리 추가</span>
+            </button>
+          </div>
+          <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  <th class="py-3 px-4">카테고리명 (분류)</th>
+                  <th class="py-3 px-4">물품고유ID 코드 (접두사)</th>
+                  <th class="py-3 px-4 text-center">관리</th>
+                </tr>
+              </thead>
+              <tbody id="categories-table-body" class="divide-y divide-slate-100 dark:divide-slate-700 text-sm"></tbody>
+            </table>
+          </div>
         </div>
       </section>
     </main>
@@ -470,10 +499,7 @@
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">카테고리 <span class="text-rose-500">*</span></label>
-            <div class="flex space-x-1.5">
-              <select id="item-category" onchange="onCategoryChange()" class="w-full px-3 py-2 text-sm border dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none bg-white dark:bg-slate-900 dark:text-white"></select>
-              <button type="button" onclick="promptAddCategory()" class="px-2.5 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-brand-50 dark:hover:bg-brand-900 text-slate-600 dark:text-slate-300 hover:text-brand-600 rounded-lg text-xs font-bold transition whitespace-nowrap" title="신규 카테고리 추가">+ 추가</button>
-            </div>
+            <select id="item-category" onchange="onCategoryChange()" class="w-full px-3 py-2 text-sm border dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none bg-white dark:bg-slate-900 dark:text-white"></select>
           </div>
           <div>
             <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">품목 코드 (자동) <span class="text-rose-500">*</span></label>
@@ -507,6 +533,29 @@
           <button type="submit" id="btn-save-item" class="px-4 py-2 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg">
             <span>저장하기</span>
           </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="category-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+        <h3 class="font-bold text-slate-900 dark:text-white text-base">신규 카테고리 추가</h3>
+        <button onclick="closeModal('category-modal')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="ph-bold ph-x text-lg"></i></button>
+      </div>
+      <form id="category-form" onsubmit="handleSaveCategory(event)" class="p-6 space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">카테고리명 (분류) <span class="text-rose-500">*</span></label>
+          <input type="text" id="new-cat-name" required placeholder="예: 소모품류" class="w-full px-3 py-2 text-sm border dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none bg-white dark:bg-slate-900 dark:text-white">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">물품고유ID 코드 (영문 접두사) <span class="text-rose-500">*</span></label>
+          <input type="text" id="new-cat-prefix" required placeholder="예: SM" class="w-full px-3 py-2 text-sm uppercase font-mono border dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none bg-white dark:bg-slate-900 dark:text-white">
+        </div>
+        <div class="pt-4 flex justify-end space-x-2 border-t border-slate-100 dark:border-slate-700">
+          <button type="button" onclick="closeModal('category-modal')" class="px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">취소</button>
+          <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg">추가하기</button>
         </div>
       </form>
     </div>
@@ -619,7 +668,7 @@
             <div class="p-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-100 dark:border-slate-700"><strong>S (대표):</strong> 프로그램 모든 부분 엑세스 가능 ([접수], [상신], [결제] 전과정 제어)</div>
             <div class="p-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-100 dark:border-slate-700"><strong>A (이사):</strong> B등급 인원이 상신한 오더를 최종 결제 승인</div>
             <div class="p-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-100 dark:border-slate-700"><strong>B (매니저):</strong> C등급 직원이 접수한 추가 오더를 확인 후 1차 상신 승인</div>
-            <div class="p-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-100 dark:border-slate-700"><strong>C (직원):</strong> 사용자 관리 접근 제한 / 위험 재고에 대한 추가 오더 접수 요청</div>
+            <div class="p-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-100 dark:border-slate-700"><strong>C (직원):</strong> 설정 관리 접근 제한 / 위험 재고에 대한 추가 오더 접수 요청</div>
             <div class="p-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-100 dark:border-slate-700"><strong>D (인턴):</strong> C등급과 동일 / 전체 재고에 대한 부분은 확인만 가능</div>
           </div>
         </div>
@@ -1412,6 +1461,7 @@
       renderOrders();
       renderCharts();
       renderUsers();
+      renderCategoriesSetting();
       renderDashboardAlerts();
     }
 
@@ -1425,6 +1475,20 @@
       const activeBtn = document.getElementById(`tab-btn-${tabName}`);
       if(activeBtn) {
         activeBtn.className = "tab-btn active px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center space-x-1 text-brand-600 bg-brand-50 dark:bg-brand-900/40 dark:text-brand-400 shadow-sm border border-brand-200 dark:border-brand-800";
+      }
+    }
+
+    function switchSettingsSubTab(subTab) {
+      if(subTab === 'users') {
+        document.getElementById('sub-tab-btn-users').className = "px-4 py-2 text-xs font-bold rounded-lg bg-brand-600 text-white shadow-sm transition";
+        document.getElementById('sub-tab-btn-categories').className = "px-4 py-2 text-xs font-bold rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition";
+        document.getElementById('sub-tab-users-content').classList.remove('hidden');
+        document.getElementById('sub-tab-categories-content').classList.add('hidden');
+      } else {
+        document.getElementById('sub-tab-btn-categories').className = "px-4 py-2 text-xs font-bold rounded-lg bg-brand-600 text-white shadow-sm transition";
+        document.getElementById('sub-tab-btn-users').className = "px-4 py-2 text-xs font-bold rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition";
+        document.getElementById('sub-tab-categories-content').classList.remove('hidden');
+        document.getElementById('sub-tab-users-content').classList.add('hidden');
       }
     }
 
@@ -1656,7 +1720,7 @@
         <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition">
           <td class="py-3 px-4 font-bold text-slate-900 dark:text-white">${u.account}</td>
           <td class="py-3 px-4 font-bold text-brand-600 dark:text-brand-400">${u.name || '-'}</td>
-          <td class="py-3 px-4 font-mono text-xs text-slate-600 dark:text-slate-400">••••••••</td>
+          <td class="py-3 px-4 font-mono text-xs text-slate-400">••••••••</td>
           <td class="py-3 px-4">
             <span class="px-2.5 py-1 text-xs font-bold rounded-full bg-brand-50 dark:bg-brand-900/40 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-800">등급: ${u.level}</span>
           </td>
@@ -1666,6 +1730,75 @@
           </td>
         </tr>
       `).join('');
+    }
+
+    function renderCategoriesSetting() {
+      const tbody = document.getElementById('categories-table-body');
+      if(!tbody) return;
+      if(!state.categories || state.categories.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="3" class="py-8 text-center text-slate-400 text-xs">등록된 카테고리가 없습니다.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = state.categories.map(cat => {
+        const prefix = (state.categoryPrefixes && state.categoryPrefixes[cat]) || '-';
+        return `
+          <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition">
+            <td class="py-3 px-4 font-bold text-slate-900 dark:text-white">${cat}</td>
+            <td class="py-3 px-4 font-mono font-bold text-brand-600 dark:text-brand-400">${prefix}</td>
+            <td class="py-3 px-4 text-center">
+              <button onclick="handleDeleteCategory('${cat}')" class="px-2.5 py-1 bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 text-rose-600 rounded-lg text-xs font-bold transition">삭제</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function openCategoryModal() {
+      document.getElementById('category-form').reset();
+      openModal('category-modal');
+    }
+
+    async function handleSaveCategory(event) {
+      event.preventDefault();
+      const catName = document.getElementById('new-cat-name').value.trim();
+      const prefix = document.getElementById('new-cat-prefix').value.trim().toUpperCase();
+
+      if(!catName || !prefix) {
+        showToast('카테고리명과 접두사를 모두 입력해주세요.', 'error');
+        return;
+      }
+
+      if(state.categories.includes(catName)) {
+        showToast('이미 존재하는 카테고리명입니다.', 'error');
+        return;
+      }
+
+      showLoader(true, '카테고리 저장 중...');
+      try {
+        await callGasApi('saveCategory', [catName, prefix]);
+        showLoader(false);
+        showToast('신규 카테고리가 추가되었습니다.');
+        closeModal('category-modal');
+        fetchDataFromServer();
+      } catch (err) {
+        showLoader(false);
+        showToast(err.message || '카테고리 추가 실패', 'error');
+      }
+    }
+
+    async function handleDeleteCategory(catName) {
+      if(!confirm(`[${catName}] 카테고리를 정말 삭제하시겠습니까?`)) return;
+      showLoader(true, '카테고리 삭제 중...');
+      try {
+        await callGasApi('deleteCategory', [catName]);
+        showLoader(false);
+        showToast('카테고리가 삭제되었습니다.');
+        fetchDataFromServer();
+      } catch (err) {
+        showLoader(false);
+        showToast(err.message || '삭제 실패', 'error');
+      }
     }
 
     function openUserModal(mode, account='') {
@@ -1742,29 +1875,6 @@
         onCategoryChange();
       }
       openModal('item-modal');
-    }
-
-    function promptAddCategory() {
-      const newCat = prompt('추가할 새로운 카테고리 이름을 입력하세요:');
-      if(!newCat || !newCat.trim()) return;
-      const trimmed = newCat.trim();
-      if(state.categories.includes(trimmed)) {
-        showToast('이미 존재하는 카테고리입니다.', 'error');
-        return;
-      }
-      const newPrefix = prompt(`[${trimmed}] 카테고리에 사용할 물품고유ID 코드(영문 약자)를 입력하세요 (예: OT):`, 'OT');
-      if(!newPrefix || !newPrefix.trim()) return;
-      const prefixUpper = newPrefix.trim().toUpperCase();
-
-      callGasApi('saveCategory', [trimmed, prefixUpper]).then(() => {
-        showToast('새로운 카테고리가 등록되었습니다.');
-        fetchDataFromServer().then(() => {
-          document.getElementById('item-category').value = trimmed;
-          onCategoryChange();
-        });
-      }).catch(err => {
-        showToast(err.message || '카테고리 등록 실패', 'error');
-      });
     }
 
     function onCategoryChange() {
